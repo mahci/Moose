@@ -41,17 +41,6 @@ public class Mologger {
      * Constructor
      */
     public Mologger() {
-        // Subscribe to logging state from Networker
-//        Networker.get()
-//                .getLogSubject()
-//                .subscribe(logState -> {
-//                    Log.d(TAG, "Log message: " + logState);
-//                    toLog = logState;
-//                    if (!logState) { // Close the file on logging end
-//                        logFile.close();
-//                    }
-//                });
-
         // Create the log file
         try {
             logFile = new PrintWriter(new FileWriter(
@@ -68,8 +57,6 @@ public class Mologger {
      * @param mevent MotionEvent
      */
     public void log(MotionEvent mevent) {
-//        eventList.add(mevent);
-//        Log.d(TAG, "Time: " + mevent.getEventTime());
         if (logFile != null && toLog) {
             String infoStr = "(" + mevent.getX() + "," + mevent.getY() + ")";
             infoStr += " -- " + mevent.getTouchMajor() + "," + mevent.getTouchMinor();

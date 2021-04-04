@@ -7,7 +7,7 @@ import android.view.MotionEvent;
 
 public class Const {
 
-    private static final String TAG = "Const";
+    private static final String TAG = "Moose_Const";
 
     // Server
     public static final String SERVER_IP = "192.168.178.34";
@@ -44,12 +44,17 @@ public class Const {
         CANCEL
     }
 
-    // Thresholds
+    // Threshold-s -----------------------------------
     public static final int PRESS_DY_MIN_MM = 8; // mm
     public static final int PRESS_DX_MAX_MM = 5; // mm
-    public static float PRESS_DY_MIN_PX;
-    public static float PRESS_DX_MAX_PX;
+    public static float PRESS_DY_MIN_PX; // px
+    public static float PRESS_DX_MAX_PX; // px
 
+    // -----------------------------------------------
+
+    // Sizes  ----------------------------------------
+    public static final int TAP_REGION_H_MM = 70; // mm
+    public static float TAP_REGION_H; // px
     // -----------------------------------------------
 
     /**
@@ -63,7 +68,7 @@ public class Const {
         PRESS_DY_MIN_PX = PRESS_DY_MIN_MM * multip;
         PRESS_DX_MAX_PX = PRESS_DX_MAX_MM * multip;
 
-        Log.d(TAG, "Multip = " + multip);
+        TAP_REGION_H = TAP_REGION_H_MM * multip;
     }
 
     /**

@@ -7,6 +7,7 @@ import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.net.Uri;
 import android.os.Bundle;
@@ -19,31 +20,21 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
-import at.aau.moose.R;
-
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.List;
 
 import io.reactivex.rxjava3.subjects.PublishSubject;
 
 public class MainActivity extends Activity {
 
-    private final String TAG = "MooseMainActivity";
+    private final String TAG = "Moose_Main";
 
+    // ------------------------------------------------
+
+    // Publisher for publishing the events to other classes
     private PublishSubject<TouchEvent> eventPublisher;
 
-
-    private int ptr1ID, ptr2ID;
-    private int lind, rind;
-    private float ptr0X, ptr1X, ptr1Y, ptr2X, ptr2Y;
-    private float dx = 10; // Min px distance between the two fingers on the screen
-
-    private List<MotionEvent.PointerCoords> leftMoveList = new ArrayList<>();
-    private List<MotionEvent.PointerCoords> rightMoveList = new ArrayList<>();
-
-    private long actStartTime;
-    private long actEndTime;
+    // Code for overlay permission intent
+    private static final int OVERLAY_PERMISSION_CODE = 2;
 
     private static TouchState fingersState = new TouchState();
 
@@ -52,35 +43,33 @@ public class MainActivity extends Activity {
     public static boolean adminActive;
     private static boolean statusDisabled;
 
-    private int OVERLAY_PERMISSION_CODE = 2;
     private boolean askedForOverlayPermission;
-
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        requestWindowFeature( Window.FEATURE_NO_TITLE );
+        requestWindowFeature(Window.FEATURE_NO_TITLE); // For removing the status bar [ReStBa]
+
         super.onCreate(savedInstanceState);
 
+        // Pass the DisplayMetrics to Const to convert values
+        Const.SetPxValues(getResources().getDisplayMetrics());
+
+        // Get the admin permission [for ReStBa]
         mDPM = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
         adminManager = new ComponentName(this, AdminManager.class);
-
         adminActive = mDPM.isAdminActive(adminManager);
-
         if (!adminActive) {
-            Log.d(TAG, "Open Intent");
+            Log.d(TAG, "[Admin] Disabled => open request intent");
             // Launch the activity to have the user enable our admin.
             Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
             intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminManager);
             startActivityForResult(intent, 1);
         } else {
-            Log.d(TAG, "Already admin");
-//            disableStatusbar();
+            Log.d(TAG, "[Admin] Enabled");
         }
 
-//        showAdminRequest();
-
-
+        // Get the overlay permission (possible only with admin)
         if (!Settings.canDrawOverlays(this)) {
             askedForOverlayPermission = true;
             Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -91,36 +80,26 @@ public class MainActivity extends Activity {
         }
 
 
-
-        // Hide the status bar
-//        View decorView = getWindow().getDecorView();
-//        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
-//        decorView.setSystemUiVisibility(uiOptions);
-
-        // Create the actSubject
+        // Create the Publisher
         eventPublisher = PublishSubject.create();
 
-        // Start Networker
-//        Networker.get().subscribeToActions(eventPublisher);
+        // Subscribe the Actioner to receive actions
         Actioner.get().subscribeToEvents(eventPublisher);
 
-
-        // Set up tapping and storing taps
-//        View tapRegion = findViewById(R.id.tapRegion);
-//        tapRegion.setOnTouchListener(touchListener);
-//        detector = new GestureDetector(this, this);
-
-        // Pass the DisplayMetrics to Const to convert values
-        Const.SetPxValues(getResources().getDisplayMetrics());
-
-        setContentView(R.layout.activity_main);
-
+        // Set the content of the activity
+//        setContentView(R.layout.activity_main);
     }
 
+    /**
+     *  Return from other intents
+     * @param requestCode (int) request code
+     * @param resultCode (int) restult code
+     * @param data Additionaly data
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 2) {
+        if (requestCode == OVERLAY_PERMISSION_CODE) {
             askedForOverlayPermission = false;
             if (Settings.canDrawOverlays(this)) {
                 drawViewGroup();
@@ -128,6 +107,9 @@ public class MainActivity extends Activity {
         }
     }
 
+    /**
+     * Draw the custom view (to apear under the status bar)
+     */
     public void drawViewGroup() {
         WindowManager winManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
@@ -140,24 +122,14 @@ public class MainActivity extends Activity {
                 PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP;
         params.width = WindowManager.LayoutParams.MATCH_PARENT;
-        params.height = (int) (50 * getResources()
-                .getDisplayMetrics().scaledDensity);
-//        params.format = PixelFormat.TRANSPARENT;
+        params.height = (int) (Const.TAP_REGION_H);
 
         TouchViewGroup view = new TouchViewGroup(this);
 
+        view.setBackgroundColor(Color.WHITE);
         assert winManager != null;
         winManager.addView(view, params);
     }
-
-//    @Override
-//    public boolean onTouchEvent(MotionEvent event) {
-////        if (detector.onTouchEvent(event)){
-////            return true;
-////        }
-////        return super.onTouchEvent(event);
-//        return true;
-//    }
 
     /**
      * The experiment begins
@@ -169,172 +141,28 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * Handles the touch on the tap region
+     * Return a TouchEvent with the MotionEvent
+     * @param me MotionEvent
+     */
+    private void publishEvent(MotionEvent me) {
+//        setFingers(me); // Set the state of fingers
+        TouchEvent te = new TouchEvent(
+                me,
+                Calendar.getInstance().getTimeInMillis());
+        te.setDestate(fingersState);
+
+        // Publish!
+        eventPublisher.onNext(te);
+    }
+
+    /**
+     * Handles the touch on the tap region (ONLY)
      */
     private final View.OnTouchListener touchListener = new View.OnTouchListener() {
 
         @SuppressLint("ClickableViewAccessibility")
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            // Keep track of the fingers on the screen
-//            recordState(event);
-//            recordEvent(event);
-            publishEvent(event);
-
-            int maskedAction = event.getActionMasked();
-            float p0x, p1x;
-            switch(maskedAction) {
-
-                case MotionEvent.ACTION_DOWN: // First touch
-//                    Log.d(TAG, "ACTION_DOWN -- id = " +
-//                            event.getPointerId(0));
-                    Log.d(TAG, "ACTION_DOWN ---");
-                    break;
-
-                case MotionEvent.ACTION_UP:
-//                    Log.d(TAG, "ACTION_UP -- id = " +
-//                            event.getPointerId(0));
-                    Log.d(TAG, "ACTION_UP ---");
-                    break;
-
-                case MotionEvent.ACTION_POINTER_DOWN: // Second touch -> start of gestures
-                    // Gesture started
-                    actStartTime = event.getEventTime(); // TODO: Check the time
-
-                    int pointerIndex =
-                            (event.getAction() & MotionEvent.ACTION_POINTER_INDEX_MASK)
-                                    >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
-//                    final int pointerIndexDown = event.getActionIndex();
-                    Log.d(TAG, "POINTER_DOWN --- ix = " + pointerIndex +
-                            " | id = " + event.getPointerId(pointerIndex));
-//                    for (int i = 0; i < event.getPointerCount(); i++) {
-//                        Log.d(TAG, "i = " + i + " - " + "pid = " + event.getPointerId(i));
-//                    }
-                    // Determine the left and right indexes
-                    if (event.getPointerCount() == 2) {
-
-                        p0x = event.getX(0);
-                        p1x = event.getX(1);
-                        if (p0x < p1x + dx) {
-                            lind = 0;
-                            rind = 1;
-                        } else {
-                            lind = 1;
-                            rind = 0;
-                        }
-
-                        // ---- Publish the secod touch (index = 1)
-//                        MotionEvent.PointerCoords pCoords = new MotionEvent.PointerCoords();
-//                        Constants.FINGER finger;
-//                        if (lind == 1) { // Left
-//                            event.getPointerCoords(lind, pCoords);
-//                            finger = Constants.FINGER.LEFT;
-//                        } else { // Right
-//                            event.getPointerCoords(rind, pCoords);
-//                            finger = Constants.FINGER.RIGHT;
-//                        }
-//                        TouchEvent te = new TouchEvent(
-//                                Constants.ACT.PRESS, pCoords,
-//                                finger, event.getEventTime());
-
-//                        actSubject.onNext(te);
-
-//                        Actioner.get().PointerDown(
-//                                Actioner.FINGER.LEFT,
-//                                pCoords, event.getEventTime());
-//                        event.getPointerCoords(rind, pCoords); // fill the coords
-//                        Actioner.get().PointerDown(
-//                                Actioner.FINGER.RIGHT,
-//                                pCoords, event.getEventTime());
-                    }
-
-
-                    break;
-
-                case MotionEvent.ACTION_POINTER_UP: // Gesture is finished
-                    pointerIndex =
-                            (event.getAction() & MotionEvent.ACTION_POINTER_INDEX_MASK)
-                                    >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
-//                    final int pointerIndexUp = event.getActionIndex();
-                    Log.d(TAG, "POINTER_UP --- ix = " + pointerIndex +
-                            " | id = " + event.getPointerId(pointerIndex));
-//                    }
-                    // Gesture ended
-//                    actEndTime = event.getEventTime();
-//                    long gesDuration = actEndTime - actStartTime;
-//                    Log.d(TAG, "Duration (ms) = " + gesDuration);
-//                    actStartTime = actEndTime = 0;
-
-                    // Send the info to the Actioner for analysis
-//                    Actioner.get().Action(leftMoveList, rightMoveList, gesDuration);
-
-                    // ---- Publish the secod touch (index = 1)
-//                    MotionEvent.PointerCoords pCoords = new MotionEvent.PointerCoords();
-//                    Constants.FINGER finger;
-//                    if (lind == 1) { // Left
-//                        event.getPointerCoords(lind, pCoords);
-//                        finger = Constants.FINGER.LEFT;
-//                    } else { // Right
-//                        event.getPointerCoords(rind, pCoords);
-//                        finger = Constants.FINGER.RIGHT;
-//                    }
-//                    TouchEvent te = new TouchEvent(
-//                            Constants.ACT.RELEASE, pCoords,
-//                            finger, event.getEventTime());
-//
-//                    actSubject.onNext(te);
-
-                    // Print the list of movement
-//                    String out = "{";
-//                    for (int e = 0; e < leftMoveList.size(); e++) {
-//                        out += pointerCoordsToString(leftMoveList.get(e)) + "\n";
-//                    }
-//                    Log.d(TAG, "Left List: " + out);
-//                    out = "{";
-//                    for (int e = 0; e < rightMoveList.size(); e++) {
-//                        out += pointerCoordsToString(rightMoveList.get(e)) + "\n";
-//                    }
-//                    Log.d(TAG, "Right List: " + out);
-
-                    // Clear the lists for the next gesture
-//                    leftMoveList.clear();
-//                    rightMoveList.clear();
-
-                    break;
-                case MotionEvent.ACTION_MOVE: // Gesture
-//                    if (event.getPointerCount() == 2) { // Accept only two fingers
-//                        int hs = event.getHistorySize();
-////                        Log.d(TAG, "History size= " + hs);
-//                        for (int h = 0; h < hs; h++) { // add the history coords
-//                            MotionEvent.PointerCoords lpc = new MotionEvent.PointerCoords();
-//                            event.getHistoricalPointerCoords(lind, h, lpc);
-//                            leftMoveList.add(lpc);
-//
-//                            MotionEvent.PointerCoords rpc = new MotionEvent.PointerCoords();
-//                            event.getHistoricalPointerCoords(rind, h, rpc);
-//                            rightMoveList.add(rpc);
-//                        }
-//
-//                        // add the current coords
-//                        MotionEvent.PointerCoords lpc = new MotionEvent.PointerCoords();
-//                        event.getPointerCoords(lind, lpc);
-//                        leftMoveList.add(lpc);
-//
-//                        MotionEvent.PointerCoords rpc = new MotionEvent.PointerCoords();
-//                        event.getPointerCoords(rind, rpc);
-//                        rightMoveList.add(rpc);
-//
-//                        break;
-//
-//                    }
-
-            }
-
-            // Publish the action
-//            actSubject.onNext(Constants.ACT_CLICK);
-
-            // Log the action
-            Mologger.get().log(event);
 
             return true; // Necessary for accepting more pointers
         }
@@ -382,32 +210,12 @@ public class MainActivity extends Activity {
 
         }
 
-        private void publishEvent(MotionEvent me) {
-            setFingers(me); // Set the state of fingers
-            TouchEvent te = new TouchEvent(
-                    me,
-                    Calendar.getInstance().getTimeInMillis());
-            te.setDestate(fingersState);
-
-            // Publish!
-            eventPublisher.onNext(te);
-        }
-
     };
-
-    public void disableStatusbar() {
-        mDPM.setStatusBarDisabled(adminManager, true);
-//        statusDisabled = true;
-//        Intent intent = getIntent();
-//        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-//        finish();
-//        startActivity(intent);
-    }
 
 
     @Override
     public void onBackPressed() {
-        // Empty to disable the BACK button
+        // Intentionally empty to disable the BACK button
     }
 
     @Override
@@ -425,6 +233,9 @@ public class MainActivity extends Activity {
 
     }
 
+    /**
+     * Custom view class
+     */
     private class TouchViewGroup extends ViewGroup {
 
         public TouchViewGroup(Context context) {
@@ -436,18 +247,34 @@ public class MainActivity extends Activity {
 
         }
 
+        /**
+         * Intercept the touches on the view
+         * @param ev MotionEvent
+         * @return Always true (to pass the events to children)
+         */
         @Override
         public boolean onInterceptTouchEvent(MotionEvent ev) {
-            Log.d(TAG, "Intercepted...");
-//            return super.onInterceptTouchEvent(ev);
 
-//            requestWindowFeature( Window.FEATURE_NO_TITLE );
-            getWindow().setFlags( WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                    WindowManager.LayoutParams.FLAG_FULLSCREEN );
-
+            // Redraw the layout
+            getWindow().setFlags(
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN);
             recreate();
-//            setContentView(R.layout.activity_main);
-            return true;
+
+            return false;
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+
+            // Publish the event (mostly for Actioner)
+            publishEvent(event);
+
+            // Log the action
+            Mologger.get().log(event);
+
+
+            return super.onTouchEvent(event);
         }
     }
 

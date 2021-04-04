@@ -15,7 +15,7 @@ import io.reactivex.rxjava3.subjects.PublishSubject;
 public class Actioner {
 
     private static Actioner self;
-    private final String TAG = "Actioner";
+    private final String TAG = "Moose_Actioner";
 
     //----- Actions parameters
     private int TAP_MV_LIMIT = 10; // In any direction
@@ -77,52 +77,66 @@ public class Actioner {
 //        Log.d(TAG, "Added Event: " + te.toString());
     }
 
-
+    /**
+     * Subscribe to get the TouchEvents
+     * @param tePublisher TouchEvent Publisher
+     */
     public void subscribeToEvents(PublishSubject<TouchEvent> tePublisher) {
         tePublisher
                 .observeOn(Schedulers.io())
                 .subscribe(tevent -> {
-                    // Check the event
-                    switch (tevent.getAction()) {
-                    // Any number of fingers down, get the leftmost finger's position
-                    case MotionEvent.ACTION_DOWN: case MotionEvent.ACTION_POINTER_DOWN:
-                        // Save the initial position of the leftmost finger
-                        lmFingerDownPos = tevent.getLmFingerPos();
-                        Log.d(TAG, "DOWN: " + lmFingerDownPos.toString());
-                        break;
-
-                    // Check for significant movement
-                    case MotionEvent.ACTION_MOVE:
-                        if (lmFingerDownPos.hasCoord()) { // Only check if prev. finger down
-                            float dY = tevent.getLmFingerPos().y - lmFingerDownPos.y;
-                            float dX = tevent.getLmFingerPos().x - lmFingerDownPos.x;
-                            Log.d(TAG, "dX = " + dX + " | " + "dY = " + dY);
-                            // Is it (only) down Y? => [PRESS]
-                            if (dY > Const.PRESS_DY_MIN_PX && dX < Const.PRESS_DX_MAX_PX) {
-                                if (!vPressed) {
-                                    Log.d(TAG, "------- Pressed ---------");
-                                    Networker.get().sendAction(Const.ACT_PRESS_PRI);
-                                    vPressed = true;
-                                }
-                            }
-                        }
-
-                        break;
-
-                    // LM finger up? => [RELEASE]
-                    case MotionEvent.ACTION_UP: case MotionEvent.ACTION_POINTER_UP:
-                        if (tevent.isLmFinger()) {
-                            if (vPressed) {
-                                Log.d(TAG, "------- Released ---------");
-                                Networker.get().sendAction(Const.ACT_RELEASE_PRI);
-                                vPressed = false;
-                            }
-                        }
-
-                        break;
-                    }
-
+                    processEvent(tevent);
                 });
+    }
+
+
+    /**
+     * Process an input event
+     * @param tevent TouchEvent
+     */
+    private void processEvent(TouchEvent tevent) {
+        Log.d(TAG, "Action: " + Const.actionToString(tevent.getAction()));
+        // Check the event (It's TouchEvent, not MotionEvent!!)
+        switch (tevent.getAction()) {
+
+        // Any number of fingers down, get the leftmost finger's position
+        case MotionEvent.ACTION_DOWN: case MotionEvent.ACTION_POINTER_DOWN:
+            // Save the initial position of the leftmost finger
+            lmFingerDownPos = tevent.getLmFingerPos();
+            Log.d(TAG, "DOWN: " + lmFingerDownPos.toString());
+            break;
+
+        // Check for significant movement
+        case MotionEvent.ACTION_MOVE:
+            Log.d(TAG, lmFingerDownPos.toString());
+            if (lmFingerDownPos.hasCoord()) { // Only check if prev. finger down
+                float dY = tevent.getLmFingerPos().y - lmFingerDownPos.y;
+                float dX = tevent.getLmFingerPos().x - lmFingerDownPos.x;
+                Log.d(TAG, "dX = " + dX + " | " + "dY = " + dY);
+                // Is it (only) down Y? => [PRESS]
+                if (dY > Const.PRESS_DY_MIN_PX && dX < Const.PRESS_DX_MAX_PX) {
+                    if (!vPressed) {
+                        Log.d(TAG, "------- Pressed ---------");
+                        Networker.get().sendAction(Const.ACT_PRESS_PRI);
+                        vPressed = true;
+                    }
+                }
+            }
+
+            break;
+
+        // LM finger up? => [RELEASE]
+        case MotionEvent.ACTION_UP: case MotionEvent.ACTION_POINTER_UP:
+            if (tevent.isLmFinger()) {
+                if (vPressed) {
+                    Log.d(TAG, "------- Released ---------");
+                    Networker.get().sendAction(Const.ACT_RELEASE_PRI);
+                    vPressed = false;
+                }
+            }
+
+            break;
+        }
     }
 
 }
