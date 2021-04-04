@@ -45,7 +45,7 @@ public class Const {
     }
 
     // Threshold-s -----------------------------------
-    public static final int PRESS_DY_MIN_MM = 8; // mm
+    public static final int PRESS_DY_MIN_MM = 6; // mm
     public static final int PRESS_DX_MAX_MM = 5; // mm
     public static float PRESS_DY_MIN_PX; // px
     public static float PRESS_DX_MAX_PX; // px
@@ -69,6 +69,11 @@ public class Const {
         PRESS_DX_MAX_PX = PRESS_DX_MAX_MM * multip;
 
         TAP_REGION_H = TAP_REGION_H_MM * multip;
+
+        Log.d(TAG, "Constants ============");
+        Log.d(TAG, "Min dY = " + PRESS_DY_MIN_PX + " px");
+        Log.d(TAG, "Max dX = " + PRESS_DX_MAX_PX + " px");
+        Log.d(TAG, "======================");
     }
 
     /**

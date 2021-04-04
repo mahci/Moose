@@ -28,13 +28,17 @@ public class Actioner {
     private List<TouchEvent> eventsList = new ArrayList<>();
     private List<TouchState> statesList = new ArrayList<>();
 
-    //-- Defined gestures
-    // num of fingers|finger index|sequece|duration(min-max)ms
-    private String LEFT_CLICK = "-|0|PU-PD-PU|0-20";
+    //--- Defined gestures and the current gesture
+    private enum GESTURE {
+        SWIPE_LCLICK,
+        TAP_LCLICK
+    }
+    private GESTURE gesture = GESTURE.SWIPE_LCLICK;
 
     // Position of the leftmost finger
     private Foint lmFingerDownPos;
 
+    // Is virtually pressed?
     private boolean vPressed = false;
 
     /**
@@ -95,26 +99,35 @@ public class Actioner {
      * @param tevent TouchEvent
      */
     private void processEvent(TouchEvent tevent) {
-        Log.d(TAG, "Action: " + Const.actionToString(tevent.getAction()));
-        // Check the event (It's TouchEvent, not MotionEvent!!)
-        switch (tevent.getAction()) {
+//        Log.d(TAG, "Action: " + Const.actionToString(tevent.getAction()));
+        //--- Process the TOUCH EVENT based on the gesture
+        if (gesture == GESTURE.SWIPE_LCLICK) {
+            doSwipeLClick(tevent);
+        }
 
+    }
+
+    /**
+     * Swipe down with leftmost finger to perform press-release
+     * @param tevent TouchEvent
+     */
+    private void doSwipeLClick(TouchEvent tevent) {
+        switch (tevent.getAction()) {
         // Any number of fingers down, get the leftmost finger's position
         case MotionEvent.ACTION_DOWN: case MotionEvent.ACTION_POINTER_DOWN:
             // Save the initial position of the leftmost finger
             lmFingerDownPos = tevent.getLmFingerPos();
-            Log.d(TAG, "DOWN: " + lmFingerDownPos.toString());
             break;
 
         // Check for significant movement
         case MotionEvent.ACTION_MOVE:
-            Log.d(TAG, lmFingerDownPos.toString());
+//            Log.d(TAG, lmFingerDownPos.toString());
             if (lmFingerDownPos.hasCoord()) { // Only check if prev. finger down
                 float dY = tevent.getLmFingerPos().y - lmFingerDownPos.y;
                 float dX = tevent.getLmFingerPos().x - lmFingerDownPos.x;
-                Log.d(TAG, "dX = " + dX + " | " + "dY = " + dY);
                 // Is it (only) down Y? => [PRESS]
                 if (dY > Const.PRESS_DY_MIN_PX && dX < Const.PRESS_DX_MAX_PX) {
+                    Log.d(TAG, "dX = " + dX + " | " + "dY = " + dY);
                     if (!vPressed) {
                         Log.d(TAG, "------- Pressed ---------");
                         Networker.get().sendAction(Const.ACT_PRESS_PRI);
@@ -137,6 +150,14 @@ public class Actioner {
 
             break;
         }
+    }
+
+    /**
+     * Tap with leftmost finger (Up-Down-Up) for left click
+     * @param tevent TouchEvent
+     */
+    private void doTapLClick(TouchEvent tevent) {
+
     }
 
 }

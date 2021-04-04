@@ -56,18 +56,17 @@ public class Networker {
                     line = inChannel.readLine();
                     // Got the begin line message
                     Log.d(TAG, "Server Message: " + line);
-                    switch (line) {
-                        case Const.MSSG_BEG_EXP: // Start of experiment
-                            // Tell the MainActivity to save the initial state
-                            MainActivity.beginExperiment();
-                            break;
-                        case Const.MSSG_BEG_LOG: // Start of logging
-                            Mologger.get().setLogState(true);
-                            break;
-                        case Const.MSSG_END_LOG: // End of logging
-                            Mologger.get().setLogState(false);
-                            break;
+                    if (Objects.equals(line, Const.MSSG_BEG_EXP)) {
+                        // Tell the MainActivity to save the initial state
+                        MainActivity.beginExperiment();
                     }
+                    else if (Objects.equals(line, Const.MSSG_BEG_LOG)) { // Start of logging
+                        Mologger.get().setLogState(true);
+                    }
+                    else if (Objects.equals(line, Const.MSSG_END_LOG)) { // End of logging
+                        Mologger.get().setLogState(false);
+                    }
+
                 } while(!Objects.equals(line, Const.NET_DISCONNECT));
             }
         }).subscribeOn(Schedulers.io());
