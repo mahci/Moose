@@ -17,29 +17,19 @@ public class Actioner {
     private static Actioner self;
     private final String TAG = "Moose_Actioner";
 
-    //----- Actions parameters
-    private int TAP_MV_LIMIT = 10; // In any direction
-
-    private int FLING_DY_LIMIT = 100;
-    private int FLING_DX_LIMIT = 10;
-    private int FLING_TM_LIMIT = 150;
-
-    // --- States and Events
-    private List<TouchEvent> eventsList = new ArrayList<>();
-    private List<TouchState> statesList = new ArrayList<>();
-
     //--- Defined gestures and the current gesture
     private enum GESTURE {
         SWIPE_LCLICK,
         TAP_LCLICK
     }
-    private GESTURE gesture = GESTURE.SWIPE_LCLICK;
+    private GESTURE gesture = GESTURE.TAP_LCLICK;
 
     // Position of the leftmost finger
     private Foint lmFingerDownPos;
 
     // Is virtually pressed?
     private boolean vPressed = false;
+    private long actionStartTime; // Both for time keeping and checking if action is started
 
     /**
      * Get the instance
@@ -50,35 +40,6 @@ public class Actioner {
             self = new Actioner();
         }
         return self;
-    }
-
-    /**
-     * Set the initial state
-     * @param inSt Initial TouchState
-     */
-    public void setInitState(TouchState inSt) {
-        statesList.clear();
-        statesList.add(inSt);
-        Log.d(TAG, "Initial State: " + inSt.toSring());
-    }
-
-
-    /**
-     * Add a state to the list
-     * @param ts TouchState
-     */
-    public void addState(TouchState ts) {
-        statesList.add(ts);
-//        Log.d(TAG, "Added State: " + ts.toSring());
-    }
-
-    /**
-     * Add an event to the list
-     * @param te TouchEvent
-     */
-    public void addEvent(TouchEvent te) {
-        eventsList.add(te);
-//        Log.d(TAG, "Added Event: " + te.toString());
     }
 
     /**
@@ -101,8 +62,13 @@ public class Actioner {
     private void processEvent(TouchEvent tevent) {
 //        Log.d(TAG, "Action: " + Const.actionToString(tevent.getAction()));
         //--- Process the TOUCH EVENT based on the gesture
-        if (gesture == GESTURE.SWIPE_LCLICK) {
+        switch (gesture) {
+        case SWIPE_LCLICK:
             doSwipeLClick(tevent);
+            break;
+        case TAP_LCLICK:
+            doTapLClick(tevent);
+            break;
         }
 
     }
@@ -157,7 +123,32 @@ public class Actioner {
      * @param tevent TouchEvent
      */
     private void doTapLClick(TouchEvent tevent) {
+        switch (tevent.getAction()) {
+        // Any number of fingers down, save the leftmost finger's position
+        case MotionEvent.ACTION_DOWN: case MotionEvent.ACTION_POINTER_DOWN:
+            lmFingerDownPos = tevent.getLmFingerPos();
+            if (tevent.isLmFinger()) {
+                Log.d(TAG, "------- LM Down ---------");
+                actionStartTime = System.currentTimeMillis();
+            }
+            break;
 
+        // Check for significant movement
+        case MotionEvent.ACTION_MOVE:
+
+
+            break;
+
+        // TAP starts from UP
+        case MotionEvent.ACTION_UP: case MotionEvent.ACTION_POINTER_UP:
+            long time = System.currentTimeMillis();
+            if (time - actionStartTime < Const.TAP_DUR) { // Was it a tap?
+                Log.d(TAG, "------- TAP! ---------");
+                Networker.get().sendAction(Const.ACT_CLICK);
+            }
+
+            break;
+        }
     }
 
 }

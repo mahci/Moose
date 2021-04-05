@@ -137,7 +137,7 @@ public class MainActivity extends Activity {
     public static void beginExperiment() {
         // Save the state at this time
         fingersState.setTime(Calendar.getInstance().getTimeInMillis());
-        Actioner.get().setInitState(fingersState);
+//        Actioner.get().setInitState(fingersState);
     }
 
     /**
@@ -154,63 +154,6 @@ public class MainActivity extends Activity {
         // Publish!
         eventPublisher.onNext(te);
     }
-
-    /**
-     * Handles the touch on the tap region (ONLY)
-     */
-    private final View.OnTouchListener touchListener = new View.OnTouchListener() {
-
-        @SuppressLint("ClickableViewAccessibility")
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-
-            return true; // Necessary for accepting more pointers
-        }
-
-        /**
-         * Set the fingers in fingersState
-         * @param me MotionEvent
-         */
-        private void setFingers(MotionEvent me) {
-            fingersState.reset();
-            for (int i = 0; i < me.getPointerCount(); i++) {
-                MotionEvent.PointerCoords poco = new MotionEvent.PointerCoords();
-                me.getPointerCoords(i, poco);
-                fingersState.addFingerPoCo(poco);
-            }
-        }
-
-        /**
-         * Stamp the current state with time (millis) and send to Actioner
-         * @param me MotionEvent
-         */
-        private void recordState(MotionEvent me) {
-            // Create the state
-            fingersState.reset();
-            for (int i = 0; i < me.getPointerCount(); i++) {
-                MotionEvent.PointerCoords poco = new MotionEvent.PointerCoords();
-                me.getPointerCoords(i, poco);
-                fingersState.addFingerPoCo(poco);
-            }
-
-            // Add the state to the Actioner
-            fingersState.setTime(Calendar.getInstance().getTimeInMillis());
-            Actioner.get().addState(fingersState);
-        }
-
-        /**
-         * Stamp the event with time (millis) and send to Actioner
-         * @param me MotionEvent
-         */
-        private void recordEvent(MotionEvent me) {
-            TouchEvent te = new TouchEvent(
-                    me,
-                    Calendar.getInstance().getTimeInMillis());
-            Actioner.get().addEvent(te);
-
-        }
-
-    };
 
 
     @Override
@@ -272,7 +215,6 @@ public class MainActivity extends Activity {
 
             // Log the action
             Mologger.get().log(event);
-
 
             return super.onTouchEvent(event);
         }
