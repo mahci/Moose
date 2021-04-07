@@ -3,6 +3,8 @@ package at.aau.moose;
 import android.util.Log;
 import android.view.MotionEvent;
 
+import org.jetbrains.annotations.NotNull;
+
 /***
  * Class for every touch events
  *
@@ -33,8 +35,6 @@ public class TouchEvent {
         if (me.getActionMasked() == MotionEvent.ACTION_DOWN) {
             leftFingerPosX = me.getX();
             leftFingerPosY = me.getY();
-
-            Log.d(TAG, "Finger down Y = " + leftFingerPosY);
         }
     }
 
@@ -115,11 +115,20 @@ public class TouchEvent {
         return 0;
     }
 
-    @Override
-    public String toString() {
+    /**
+     * Get the main info from the class
+     * @return ACTION + TIME
+     */
+    public String getParams() {
         return "TouchEvent{" +
                 "action= " + Const.actionToString(event.getActionMasked()) +
                 ", time= " + time +
                 '}';
+    }
+
+    @Override
+    public String toString() {
+        return "event=" + event +
+                ", time= " + time;
     }
 }

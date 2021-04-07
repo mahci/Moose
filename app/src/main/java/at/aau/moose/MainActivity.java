@@ -15,7 +15,6 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
@@ -45,12 +44,33 @@ public class MainActivity extends Activity {
 
     private boolean askedForOverlayPermission;
 
+    private boolean initialized;
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         requestWindowFeature(Window.FEATURE_NO_TITLE); // For removing the status bar [ReStBa]
 
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "Initialize? " + !initialized);
+        // Initialize only once
+        if (!initialized) {
+            init();
+            // Done!
+            Log.d(TAG, "Initization finished!");
+
+        }
+
+        // Set the content of the activity
+//        setContentView(R.layout.activity_main);
+    }
+
+    /**
+     * Initialize
+     */
+    private void init() {
+
+        initialized = true;
 
         // Pass the DisplayMetrics to Const to convert values
         Const.SetPxValues(getResources().getDisplayMetrics());
@@ -79,15 +99,15 @@ public class MainActivity extends Activity {
             drawViewGroup();
         }
 
-
         // Create the Publisher
         eventPublisher = PublishSubject.create();
 
-        // Subscribe the Actioner to receive actions
+        // Subscribe the classes to receive actions
         Actioner.get().subscribeToEvents(eventPublisher);
+        Mologger.get().subscribeToEvents(eventPublisher);
 
-        // Set the content of the activity
-//        setContentView(R.layout.activity_main);
+        // Connect to the Empenvi
+        Networker.get().connect();
     }
 
     /**
@@ -173,7 +193,6 @@ public class MainActivity extends Activity {
                 getTaskId(),
                 ActivityManager.MOVE_TASK_NO_USER_ACTION);
 
-
     }
 
     /**
@@ -197,16 +216,19 @@ public class MainActivity extends Activity {
          */
         @Override
         public boolean onInterceptTouchEvent(MotionEvent ev) {
-
+            // TODO: Only redraw if on status bar
             // Redraw the layout
             getWindow().setFlags(
                     WindowManager.LayoutParams.FLAG_FULLSCREEN,
                     WindowManager.LayoutParams.FLAG_FULLSCREEN);
-            recreate();
+//            recreate();
+//            finish();
+            startActivity(getIntent());
 
             return false;
         }
 
+        @SuppressLint("ClickableViewAccessibility")
         @Override
         public boolean onTouchEvent(MotionEvent event) {
 
@@ -214,7 +236,7 @@ public class MainActivity extends Activity {
             publishEvent(event);
 
             // Log the action
-            Mologger.get().log(event);
+//            Mologger.get().log(event);
 
             return super.onTouchEvent(event);
         }

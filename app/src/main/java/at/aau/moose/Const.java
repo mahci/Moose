@@ -16,8 +16,12 @@ public class Const {
     // Messages
     public static final String MSSG_MOOSE       = "MOOSE";
     public static final String MSSG_CONFIRM     = "CONFIRM";
+    public static final String MSSG_PID         = "PID";
     public static final String MSSG_BEG_EXP     = "BEGEXP";
     public static final String MSSG_END_EXP     = "ENDEXP";
+    public static final String MSSG_BEG_BLK     = "BEGBLK";
+    public static final String MSSG_END_BLK     = "ENDBLK";
+    public static final String MSSG_END_TRL     = "ENDTRL";
     public static final String MSSG_END_LOG     = "ENDLOG";
     public static final String MSSG_BEG_LOG     = "BEGLOG";
 

@@ -11,15 +11,13 @@ import java.io.PrintStream;
 import java.net.Socket;
 import java.util.Objects;
 
-import io.reactivex.rxjava3.annotations.NonNull;
 import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.functions.Action;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 
 public class Networker {
 
-    private final String TAG = "Networker";
+    private final String TAG = "Moose_Networker";
 
     private static Networker self; // For singleton
 
@@ -27,7 +25,7 @@ public class Networker {
     private PrintStream outChannel;
     private BufferedReader inChannel;
 
-    private final @NonNull Observable<Object> receiverOberservable;
+    private Observable<Object> receiverOberservable;
     private PublishSubject<String> statePuSu;
 
     /**
@@ -44,64 +42,85 @@ public class Networker {
      */
     private Networker() {
 
+    }
+
+    /**
+     * Connect to Empenvi
+     */
+    public void connect() {
         // Create receiverObserable (doesn't start until after subscription)
-        receiverOberservable = Observable.fromAction(new Action() {
+        receiverOberservable = Observable.fromAction(() -> {
+            Log.d(TAG, "Receiving data...");
+            // Continously read lines from server until DISCONNECT is received
+            String line;
+            do {
+                line = inChannel.readLine();
+                // Got the begin line message
+                Log.d(TAG, "Server message: " + line);
+                if (line != null) {
+                    // Extract the parts of the message
+                    String[] parts = line.split("_");
+                    if (parts.length > 0) {
+                        // Prefix and message
+                        String prefix = parts[0];
 
-            @Override
-            public void run() throws Throwable {
-                Log.d(TAG, "Receiving data from server...");
-                // Continously read lines from server until DISCONNECT is received
-                String line;
-                do {
-                    line = inChannel.readLine();
-                    // Got the begin line message
-                    Log.d(TAG, "Server Message: " + line);
-                    if (Objects.equals(line, Const.MSSG_BEG_EXP)) {
-                        // Tell the MainActivity to save the initial state
-                        MainActivity.beginExperiment();
-                    }
-                    else if (Objects.equals(line, Const.MSSG_BEG_LOG)) { // Start of logging
-                        Mologger.get().setLogState(true);
-                    }
-                    else if (Objects.equals(line, Const.MSSG_END_LOG)) { // End of logging
-                        Mologger.get().setLogState(false);
+                        // Command
+                        switch (prefix) {
+                        case Const.MSSG_CONFIRM:
+                            break;
+                        case Const.MSSG_PID:
+                            if (parts.length > 1) {
+                                // Get the participant's ID
+                                Mologger.get().setupParticipantLog(parts[1]);
+                            } else {
+                                Log.d(TAG, "No participant ID received!");
+                            }
+                            break;
+                        case Const.MSSG_BEG_EXP:
+                            // Tell the MainActivity to save the initial state
+                            MainActivity.beginExperiment();
+
+                            if (parts.length > 1) {
+                                // Get the experiment number
+                                int expNum = Integer.parseInt(parts[1]);
+                                Mologger.get().setupExperimentLog(expNum);
+                            } else {
+                                Log.d(TAG, "No experiment number received!");
+                            }
+                            break;
+                        case Const.MSSG_BEG_BLK:
+                            if (parts.length > 1) {
+                                // Get the experiment number
+                                int blkNum = Integer.parseInt(parts[1]);
+                                Mologger.get().setupBlockLog(blkNum);
+                            } else {
+                                Log.d(TAG, "No block number received!");
+                            }
+                            break;
+                        case Const.MSSG_END_TRL:
+                            Mologger.get().finishTrialLog();
+                            break;
+                        case Const.MSSG_END_BLK:
+                            Mologger.get().finishBlockLog();
+                            break;
+                        }
                     }
 
-                } while(!Objects.equals(line, Const.NET_DISCONNECT));
-            }
+                }
+
+                if (Objects.equals(line, Const.MSSG_BEG_LOG)) { // Start of logging
+                    Mologger.get().setLogState(true);
+                }
+                if (Objects.equals(line, Const.MSSG_END_LOG)) { // End of logging
+                    Mologger.get().setLogState(false);
+                }
+
+            } while(!Objects.equals(line, Const.NET_DISCONNECT));
         }).subscribeOn(Schedulers.io());
 
         // Connect to server (runs once)
         new NetTask().execute(Const.NET_CONNECT);
-
     }
-
-    /**
-     * Subscribe to actions PublishingSubject
-     * @param actSubject PublishingSubject
-     */
-//    public void subscribeToActions(PublishSubject<TouchEvent> actSubject) {
-//        actSubject
-//                .observeOn(Schedulers.io())
-//                .subscribe(touchEvent -> {
-//                    // Send the respective message
-//                    String mssg = eventToMessage(touchEvent);
-//                    if (outChannel != null) {
-//                        outChannel.println(mssg);
-//                        outChannel.flush();
-//                        Log.d(TAG, mssg + " sent to server");
-//                    } else {
-//                        Log.d(TAG, "Channel to server not opened!");
-//                    }
-//
-//                });
-//    }
-
-    /**
-     * Get the logging Subject
-     * @return PublishSubject<Boolean> logSubject
-     */
-//    public PublishSubject<Boolean> getLogSubject() { return logSubject;}
 
     /**
      * Connections task
@@ -113,36 +132,31 @@ public class Networker {
         protected String doInBackground(String... tasks) {
 
             // Run the appropriate action
-            switch(tasks[0]) {
-                case Const.NET_CONNECT:
-
-                    Log.d(TAG, "Connecting...");
-                    try {
-                        // Open the socket
-                        socket = new Socket(Const.SERVER_IP, Const.SERVER_Port);
-                        Log.d(TAG, "Socket created");
-                        // Create streams for I/O
-                        outChannel = new PrintStream(socket.getOutputStream());
-                        inChannel = new BufferedReader(
-                                new InputStreamReader(socket.getInputStream()));
-                        Log.d(TAG, "Channels created");
-                        // Send the first message and get the reply for connection confirmation
-                        outChannel.println(Const.MSSG_MOOSE);
-                        Log.d(TAG, "Moose message sent");
-                        String line = inChannel.readLine();
-                        Log.d(TAG, line);
-                        if (Objects.equals(line, Const.MSSG_CONFIRM)) { // Successful!
-                            Log.d(TAG, "Connection Successful!");
-
-                            return "SUCCESS";
-                        }
-
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        return "FAIL";
+            if (Const.NET_CONNECT.equals(tasks[0])) {
+                Log.d(TAG, "Connecting...");
+                try {
+                    // Open the socket
+                    socket = new Socket(Const.SERVER_IP, Const.SERVER_Port);
+                    Log.d(TAG, "Socket created");
+                    // Create streams for I/O
+                    outChannel = new PrintStream(socket.getOutputStream());
+                    inChannel = new BufferedReader(
+                            new InputStreamReader(socket.getInputStream()));
+                    Log.d(TAG, "Channels created");
+                    // Send the first message and get the reply for connection confirmation
+                    outChannel.println(Const.MSSG_MOOSE);
+                    Log.d(TAG, "Moose message sent");
+                    String line = inChannel.readLine();
+                    Log.d(TAG, line);
+                    if (Objects.equals(line, Const.MSSG_CONFIRM)) { // Successful!
+                        Log.d(TAG, "Connection Successful!");
+                        return "SUCCESS";
                     }
 
-                    break;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return "FAIL";
+                }
             }
 
             return "FAIL";
@@ -159,7 +173,7 @@ public class Networker {
     }
 
     /**
-     * Send an action string to the DSKMoose
+     * Send an action string to the Expenvi
      * @param actStr String action (from Constants)
      */
     public void sendAction(String actStr) {
@@ -171,29 +185,6 @@ public class Networker {
             Log.d(TAG, "Channel to server not opened!");
         }
     }
-
-    /**
-     * Get the message from a TouchEvent
-     * @param te TouchEvent
-     * @return Message for server
-     */
-    private String eventToMessage(TouchEvent te) {
-//        if (te.getFinger() == Constants.FINGER.LEFT) { // Primary tap
-//            if (te.getActType() == Constants.ACT.PRESS) {
-//                return Constants.ACT_PRESS_PRI;
-//            } else {
-//                return Constants.ACT_RELEASE_PRI;
-//            }
-//        } else { // Secondary tap
-//            if (te.getActType() == Constants.ACT.PRESS) {
-//                return Constants.ACT_PRESS_SEC;
-//            } else {
-//                return Constants.ACT_RELEASE_SEC;
-//            }
-//        }
-        return "";
-    }
-
 
 }
 

@@ -128,7 +128,7 @@ public class Actioner {
         case MotionEvent.ACTION_DOWN: case MotionEvent.ACTION_POINTER_DOWN:
             lmFingerDownPos = tevent.getLmFingerPos();
             if (tevent.isLmFinger()) {
-                Log.d(TAG, "------- LM Down ---------");
+//                Log.d(TAG, "------- LM Down ---------");
                 actionStartTime = System.currentTimeMillis();
             }
             break;
