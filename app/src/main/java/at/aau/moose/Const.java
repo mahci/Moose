@@ -10,7 +10,7 @@ public class Const {
     private static final String TAG = "Moose_Const";
 
     // Server
-    public static final String SERVER_IP = "192.168.178.34";
+    public static final String SERVER_IP = "143.205.114.167";
     public static final int SERVER_Port = 5000;
 
     // Messages

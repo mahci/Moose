@@ -11,10 +11,12 @@ import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
@@ -108,6 +110,9 @@ public class MainActivity extends Activity {
 
         // Connect to the Empenvi
         Networker.get().connect();
+
+        // [TEST]
+        Actioner.get().vibrator = (Vibrator)getSystemService(VIBRATOR_SERVICE);
     }
 
     /**
@@ -241,8 +246,5 @@ public class MainActivity extends Activity {
             return super.onTouchEvent(event);
         }
     }
-
-
-
 
 }

@@ -1,7 +1,12 @@
 package at.aau.moose;
 
+import android.content.Context;
+import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.View;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +27,7 @@ public class Actioner {
         SWIPE_LCLICK,
         TAP_LCLICK
     }
-    private GESTURE gesture = GESTURE.TAP_LCLICK;
+    private GESTURE gesture = GESTURE.SWIPE_LCLICK;
 
     // Position of the leftmost finger
     private Foint lmFingerDownPos;
@@ -30,6 +35,9 @@ public class Actioner {
     // Is virtually pressed?
     private boolean vPressed = false;
     private long actionStartTime; // Both for time keeping and checking if action is started
+
+    // [TEST]
+    public Vibrator vibrator;
 
     /**
      * Get the instance
@@ -135,8 +143,6 @@ public class Actioner {
 
         // Check for significant movement
         case MotionEvent.ACTION_MOVE:
-
-
             break;
 
         // TAP starts from UP
@@ -144,11 +150,20 @@ public class Actioner {
             long time = System.currentTimeMillis();
             if (time - actionStartTime < Const.TAP_DUR) { // Was it a tap?
                 Log.d(TAG, "------- TAP! ---------");
+                vibrate(100);
                 Networker.get().sendAction(Const.ACT_CLICK);
             }
 
             break;
         }
+    }
+
+    /**
+     * [TESTING] vibrate for duration
+     * @param duration Duration (ms)
+     */
+    private void vibrate(int duration) {
+        vibrator.vibrate(duration);
     }
 
 }
