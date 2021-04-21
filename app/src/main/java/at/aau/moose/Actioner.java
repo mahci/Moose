@@ -1,15 +1,8 @@
 package at.aau.moose;
 
-import android.content.Context;
-import android.os.Build;
-import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.Log;
 import android.view.MotionEvent;
-import android.view.View;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.PublishSubject;
@@ -19,15 +12,18 @@ import io.reactivex.rxjava3.subjects.PublishSubject;
  */
 public class Actioner {
 
-    private static Actioner self;
     private final String TAG = "Moose_Actioner";
+    //==============================================
+
+    private static Actioner self;
 
     //--- Defined gestures and the current gesture
-    private enum GESTURE {
+    private enum INTERACTION {
         SWIPE_LCLICK,
         TAP_LCLICK
     }
-    private GESTURE gesture = GESTURE.SWIPE_LCLICK;
+    private INTERACTION interaction = INTERACTION.TAP_LCLICK;
+    private boolean toVibrate = false;
 
     // Position of the leftmost finger
     private Foint lmFingerDownPos;
@@ -70,7 +66,7 @@ public class Actioner {
     private void processEvent(TouchEvent tevent) {
 //        Log.d(TAG, "Action: " + Const.actionToString(tevent.getAction()));
         //--- Process the TOUCH EVENT based on the gesture
-        switch (gesture) {
+        switch (interaction) {
         case SWIPE_LCLICK:
             doSwipeLClick(tevent);
             break;
@@ -100,11 +96,11 @@ public class Actioner {
                 float dY = tevent.getLmFingerPos().y - lmFingerDownPos.y;
                 float dX = tevent.getLmFingerPos().x - lmFingerDownPos.x;
                 // Is it (only) down Y? => [PRESS]
-                if (dY > Const.PRESS_DY_MIN_PX && dX < Const.PRESS_DX_MAX_PX) {
+                if (dY > Config._swipeLClickDyMin && dX < Config._swipeLClickDxMax) {
                     Log.d(TAG, "dX = " + dX + " | " + "dY = " + dY);
                     if (!vPressed) {
                         Log.d(TAG, "------- Pressed ---------");
-                        Networker.get().sendAction(Const.ACT_PRESS_PRI);
+                        Networker.get().sendAction(Config.ACT_PRESS_PRI);
                         vPressed = true;
                     }
                 }
@@ -117,7 +113,7 @@ public class Actioner {
             if (tevent.isLmFinger()) {
                 if (vPressed) {
                     Log.d(TAG, "------- Released ---------");
-                    Networker.get().sendAction(Const.ACT_RELEASE_PRI);
+                    Networker.get().sendAction(Config.ACT_RELEASE_PRI);
                     vPressed = false;
                 }
             }
@@ -148,10 +144,10 @@ public class Actioner {
         // TAP starts from UP
         case MotionEvent.ACTION_UP: case MotionEvent.ACTION_POINTER_UP:
             long time = System.currentTimeMillis();
-            if (time - actionStartTime < Const.TAP_DUR) { // Was it a tap?
+            if (time - actionStartTime < Config.TAP_DUR) { // Was it a tap?
                 Log.d(TAG, "------- TAP! ---------");
-                vibrate(100);
-                Networker.get().sendAction(Const.ACT_CLICK);
+                if (toVibrate) vibrate(100);
+                Networker.get().sendAction(Config.ACT_CLICK);
             }
 
             break;

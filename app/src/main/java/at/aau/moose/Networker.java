@@ -8,8 +8,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
+import java.time.LocalTime;
+import java.util.Calendar;
 import java.util.Objects;
+
+import javax.net.SocketFactory;
 
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
@@ -27,6 +33,8 @@ public class Networker {
 
     private Observable<Object> receiverOberservable;
     private PublishSubject<String> statePuSu;
+
+    private int timeoutCount = 0;
 
     /**
      * Get the singletong instance
@@ -55,8 +63,8 @@ public class Networker {
             String line;
             do {
                 line = inChannel.readLine();
+
                 // Got the begin line message
-                Log.d(TAG, "Server message: " + line);
                 if (line != null) {
                     // Extract the parts of the message
                     String[] parts = line.split("_");
@@ -66,9 +74,9 @@ public class Networker {
 
                         // Command
                         switch (prefix) {
-                        case Const.MSSG_CONFIRM:
+                        case Config.MSSG_CONFIRM:
                             break;
-                        case Const.MSSG_PID:
+                        case Config.MSSG_PID:
                             if (parts.length > 1) {
                                 // Get the participant's ID
                                 Mologger.get().setupParticipantLog(parts[1]);
@@ -76,8 +84,8 @@ public class Networker {
                                 Log.d(TAG, "No participant ID received!");
                             }
                             break;
-                        case Const.MSSG_BEG_EXP:
-                            // Tell the MainActivity to save the initial state
+                        case Config.MSSG_BEG_EXP:
+                            // Tell the MainActivity to begin experimente
                             MainActivity.beginExperiment();
 
                             if (parts.length > 1) {
@@ -88,7 +96,7 @@ public class Networker {
                                 Log.d(TAG, "No experiment number received!");
                             }
                             break;
-                        case Const.MSSG_BEG_BLK:
+                        case Config.MSSG_BEG_BLK:
                             if (parts.length > 1) {
                                 // Get the experiment number
                                 int blkNum = Integer.parseInt(parts[1]);
@@ -97,10 +105,10 @@ public class Networker {
                                 Log.d(TAG, "No block number received!");
                             }
                             break;
-                        case Const.MSSG_END_TRL:
+                        case Config.MSSG_END_TRL:
                             Mologger.get().finishTrialLog();
                             break;
-                        case Const.MSSG_END_BLK:
+                        case Config.MSSG_END_BLK:
                             Mologger.get().finishBlockLog();
                             break;
                         }
@@ -108,18 +116,19 @@ public class Networker {
 
                 }
 
-                if (Objects.equals(line, Const.MSSG_BEG_LOG)) { // Start of logging
+                if (Objects.equals(line, Config.MSSG_BEG_LOG)) { // Start of logging
                     Mologger.get().setLogState(true);
                 }
-                if (Objects.equals(line, Const.MSSG_END_LOG)) { // End of logging
+                if (Objects.equals(line, Config.MSSG_END_LOG)) { // End of logging
                     Mologger.get().setLogState(false);
                 }
 
-            } while(!Objects.equals(line, Const.NET_DISCONNECT));
+            } while(!Objects.equals(line, Config.NET_DISCONNECT));
+            System.exit(0);
         }).subscribeOn(Schedulers.io());
 
         // Connect to server (runs once)
-        new NetTask().execute(Const.NET_CONNECT);
+        new NetTask().execute(Config.NET_CONNECT);
     }
 
     /**
@@ -132,31 +141,42 @@ public class Networker {
         protected String doInBackground(String... tasks) {
 
             // Run the appropriate action
-            if (Const.NET_CONNECT.equals(tasks[0])) {
-                Log.d(TAG, "Connecting...");
-                try {
-                    // Open the socket
-                    socket = new Socket(Const.SERVER_IP, Const.SERVER_Port);
-                    Log.d(TAG, "Socket created");
-                    // Create streams for I/O
-                    outChannel = new PrintStream(socket.getOutputStream());
-                    inChannel = new BufferedReader(
-                            new InputStreamReader(socket.getInputStream()));
-                    Log.d(TAG, "Channels created");
-                    // Send the first message and get the reply for connection confirmation
-                    outChannel.println(Const.MSSG_MOOSE);
-                    Log.d(TAG, "Moose message sent");
-                    String line = inChannel.readLine();
-                    Log.d(TAG, line);
-                    if (Objects.equals(line, Const.MSSG_CONFIRM)) { // Successful!
-                        Log.d(TAG, "Connection Successful!");
-                        return "SUCCESS";
-                    }
+            if (Objects.equals(tasks[0], Config.NET_CONNECT)) {
+                Log.d(TAG, "Connecting to Expenvi...");
+                long t0 = Calendar.getInstance().getTimeInMillis();
+                while (Calendar.getInstance().getTimeInMillis() - t0 < Config.TIMEOUT) {
+                    try {
+                        // Open the socket
+                        socket = new Socket(Config.SERVER_IP, Config.SERVER_Port);
+                        Log.d(TAG, "Socket opened");
+                        // Create streams for I/O
+                        outChannel = new PrintStream(socket.getOutputStream());
+                        inChannel = new BufferedReader(
+                                new InputStreamReader(socket.getInputStream()));
+                        Log.d(TAG, "Channels opened");
+                        // Send the first message and get the reply for connection confirmation
+                        outChannel.println(Config.MSSG_MOOSE);
 
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    return "FAIL";
+                        String line = inChannel.readLine();
+                        if (Objects.equals(line, Config.MSSG_CONFIRM)) { // Successful!
+                            Log.d(TAG, "Connection Successful!");
+                            return "SUCCESS";
+                        }
+
+                        return "FAIL";
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Log.d(TAG, "Reconnecting...");
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException interruptedException) {
+                            interruptedException.printStackTrace();
+                        }
+//                        return "FAIL";
+                    }
                 }
+
             }
 
             return "FAIL";
@@ -165,9 +185,11 @@ public class Networker {
         @Override
         protected void onPostExecute(String s) {
             if (Objects.equals(s, "SUCCESS")) {
-                Log.d(TAG, "Start receiving...");
+                Log.d(TAG, "Start receiving data...");
                 // Start receiving data from server
                 receiverOberservable.subscribe();
+            } else {
+                Log.d(TAG, "Connection failed!");
             }
         }
     }
@@ -182,7 +204,7 @@ public class Networker {
             outChannel.flush();
             Log.d(TAG, actStr + " sent to server");
         } else {
-            Log.d(TAG, "Channel to server not opened!");
+            Log.d(TAG, "Out channel not available!");
         }
     }
 

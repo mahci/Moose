@@ -3,8 +3,6 @@ package at.aau.moose;
 import android.util.Log;
 import android.view.MotionEvent;
 
-import org.jetbrains.annotations.NotNull;
-
 /***
  * Class for every touch events
  *
@@ -121,7 +119,7 @@ public class TouchEvent {
      */
     public String getParams() {
         return "TouchEvent{" +
-                "action= " + Const.actionToString(event.getActionMasked()) +
+                "action= " + Config.actionToString(event.getActionMasked()) +
                 ", time= " + time +
                 '}';
     }

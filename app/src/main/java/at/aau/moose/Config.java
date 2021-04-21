@@ -5,13 +5,15 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 
-public class Const {
+public class Config {
 
-    private static final String TAG = "Moose_Const";
+    private static final String TAG = "Moose_Config";
+    //=======================================================
 
     // Server
-    public static final String SERVER_IP = "143.205.114.167";
-    public static final int SERVER_Port = 5000;
+    public static final String SERVER_IP = "192.168.178.34";
+    public static final int SERVER_Port = 8000;
+    public static final int TIMEOUT = 2 * 60 * 1000; // 2 min
 
     // Messages
     public static final String MSSG_MOOSE       = "MOOSE";
@@ -24,6 +26,7 @@ public class Const {
     public static final String MSSG_END_TRL     = "ENDTRL";
     public static final String MSSG_END_LOG     = "ENDLOG";
     public static final String MSSG_BEG_LOG     = "BEGLOG";
+    public static final String MSSG_ACK         = "ACK";
 
     // Actions
     public static final String ACT_CLICK        = "CLICK";
@@ -36,23 +39,11 @@ public class Const {
     public static final String NET_CONNECT      = "CONNECT";
     public static final String NET_DISCONNECT   = "DISCONNECT";
 
-    // Touches
-    public enum FINGER {
-        LEFT,
-        RIGHT
-    }
-
-    public enum ACT {
-        PRESS,
-        RELEASE,
-        CANCEL
-    }
-
     // Thresholds ------------------------------------
-    public static final int PRESS_DY_MIN_MM = 6; // mm
-    public static final int PRESS_DX_MAX_MM = 5; // mm
-    public static float PRESS_DY_MIN_PX; // px
-    public static float PRESS_DX_MAX_PX; // px
+    public static final int SWIPE_LCLICK_DY_MIN_MM = 6; // mm
+    public static final int SWIPE_LCLICK_DX_MAX_MM = 5; // mm
+    public static float _swipeLClickDyMin; // px
+    public static float _swipeLClickDxMax; // px
 
     public static final int TAP_DUR = 300; // ms
 
@@ -60,7 +51,7 @@ public class Const {
 
     // Sizes  ----------------------------------------
     public static final int TAP_REGION_H_MM = 70; // mm
-    public static float TAP_REGION_H; // px
+    public static float _tapRegionH; // px
     // -----------------------------------------------
 
     /**
@@ -71,14 +62,14 @@ public class Const {
         float multip = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_MM, 1, dm);
 
-        PRESS_DY_MIN_PX = PRESS_DY_MIN_MM * multip;
-        PRESS_DX_MAX_PX = PRESS_DX_MAX_MM * multip;
+        _swipeLClickDyMin = SWIPE_LCLICK_DY_MIN_MM * multip;
+        _swipeLClickDxMax = SWIPE_LCLICK_DX_MAX_MM * multip;
 
-        TAP_REGION_H = TAP_REGION_H_MM * multip;
+        _tapRegionH = TAP_REGION_H_MM * multip;
 
         Log.d(TAG, "Constants ============");
-        Log.d(TAG, "Min dY = " + PRESS_DY_MIN_PX + " px");
-        Log.d(TAG, "Max dX = " + PRESS_DX_MAX_PX + " px");
+        Log.d(TAG, "Min dY = " + _swipeLClickDyMin + " px");
+        Log.d(TAG, "Max dX = " + _swipeLClickDxMax + " px");
         Log.d(TAG, "======================");
     }
 

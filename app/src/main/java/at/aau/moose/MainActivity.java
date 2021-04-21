@@ -16,7 +16,6 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
@@ -75,7 +74,7 @@ public class MainActivity extends Activity {
         initialized = true;
 
         // Pass the DisplayMetrics to Const to convert values
-        Const.SetPxValues(getResources().getDisplayMetrics());
+        Config.SetPxValues(getResources().getDisplayMetrics());
 
         // Get the admin permission [for ReStBa]
         mDPM = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
@@ -147,7 +146,7 @@ public class MainActivity extends Activity {
                 PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP;
         params.width = WindowManager.LayoutParams.MATCH_PARENT;
-        params.height = (int) (Const.TAP_REGION_H);
+        params.height = (int) (Config._tapRegionH);
 
         TouchViewGroup view = new TouchViewGroup(this);
 
@@ -246,5 +245,4 @@ public class MainActivity extends Activity {
             return super.onTouchEvent(event);
         }
     }
-
 }

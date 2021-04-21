@@ -65,7 +65,9 @@ public class Mologger {
     public void subscribeToEvents(PublishSubject<TouchEvent> tePublisher) {
         tePublisher
                 .observeOn(Schedulers.io())
-                .subscribe(this::log);
+                .subscribe(
+//                        this::log
+                );
     }
 
     /**
