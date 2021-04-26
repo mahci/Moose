@@ -11,7 +11,7 @@ public class Config {
     //=======================================================
 
     // Server
-    public static final String SERVER_IP = "192.168.178.34";
+    public static final String SERVER_IP = "192.168.2.1";
     public static final int SERVER_Port = 8000;
     public static final int TIMEOUT = 2 * 60 * 1000; // 2 min
 
@@ -40,8 +40,8 @@ public class Config {
     public static final String NET_DISCONNECT   = "DISCONNECT";
 
     // Thresholds ------------------------------------
-    public static final int SWIPE_LCLICK_DY_MIN_MM = 6; // mm
-    public static final int SWIPE_LCLICK_DX_MAX_MM = 5; // mm
+    public static final int SWIPE_LCLICK_DY_MIN_MM = 5; // mm
+    public static final int SWIPE_LCLICK_DX_MAX_MM = 3; // mm
     public static float _swipeLClickDyMin; // px
     public static float _swipeLClickDxMax; // px
 

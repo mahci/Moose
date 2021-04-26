@@ -34,8 +34,6 @@ public class Networker {
     private Observable<Object> receiverOberservable;
     private PublishSubject<String> statePuSu;
 
-    private int timeoutCount = 0;
-
     /**
      * Get the singletong instance
      * @return self instance
@@ -76,26 +74,29 @@ public class Networker {
                         switch (prefix) {
                         case Config.MSSG_CONFIRM:
                             break;
+
                         case Config.MSSG_PID:
                             if (parts.length > 1) {
-                                // Get the participant's ID
+                                // Participant's ID
                                 Mologger.get().setupParticipantLog(parts[1]);
                             } else {
                                 Log.d(TAG, "No participant ID received!");
                             }
                             break;
+
                         case Config.MSSG_BEG_EXP:
                             // Tell the MainActivity to begin experimente
                             MainActivity.beginExperiment();
 
                             if (parts.length > 1) {
-                                // Get the experiment number
-                                int expNum = Integer.parseInt(parts[1]);
-                                Mologger.get().setupExperimentLog(expNum);
+                                // Experiment description
+                                Mologger.get().setupExperimentLog(parts[1]);
+                                Mologger.get().setLogState(true);
                             } else {
                                 Log.d(TAG, "No experiment number received!");
                             }
                             break;
+
                         case Config.MSSG_BEG_BLK:
                             if (parts.length > 1) {
                                 // Get the experiment number
@@ -105,9 +106,11 @@ public class Networker {
                                 Log.d(TAG, "No block number received!");
                             }
                             break;
+
                         case Config.MSSG_END_TRL:
                             Mologger.get().finishTrialLog();
                             break;
+
                         case Config.MSSG_END_BLK:
                             Mologger.get().finishBlockLog();
                             break;
@@ -116,11 +119,16 @@ public class Networker {
 
                 }
 
+                if (Objects.equals(line, Config.MSSG_END_EXP)) { // Start of logging
+                    Mologger.get().setLogState(false);
+                }
                 if (Objects.equals(line, Config.MSSG_BEG_LOG)) { // Start of logging
-                    Mologger.get().setLogState(true);
+//                    Mologger.get().setLogState(true);
+                    Actioner.get().isTrialRunning = true;
                 }
                 if (Objects.equals(line, Config.MSSG_END_LOG)) { // End of logging
-                    Mologger.get().setLogState(false);
+//                    Mologger.get().setLogState(false);
+                    Actioner.get().isTrialRunning = false;
                 }
 
             } while(!Objects.equals(line, Config.NET_DISCONNECT));
@@ -167,6 +175,7 @@ public class Networker {
 
                     } catch (IOException e) {
                         e.printStackTrace();
+                        Log.d(TAG, e.toString());
                         Log.d(TAG, "Reconnecting...");
                         try {
                             Thread.sleep(1000);

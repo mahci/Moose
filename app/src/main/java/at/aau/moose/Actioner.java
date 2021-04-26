@@ -22,7 +22,7 @@ public class Actioner {
         SWIPE_LCLICK,
         TAP_LCLICK
     }
-    private INTERACTION interaction = INTERACTION.TAP_LCLICK;
+    private INTERACTION interaction = INTERACTION.SWIPE_LCLICK;
     private boolean toVibrate = false;
 
     // Position of the leftmost finger
@@ -34,6 +34,9 @@ public class Actioner {
 
     // [TEST]
     public Vibrator vibrator;
+
+    // Is trial running on Expenvi? (for logging)
+    public boolean isTrialRunning;
 
     /**
      * Get the instance
@@ -65,6 +68,9 @@ public class Actioner {
      */
     private void processEvent(TouchEvent tevent) {
 //        Log.d(TAG, "Action: " + Const.actionToString(tevent.getAction()));
+        // Sent to Mologger for logging (if isLogging there)
+        Mologger.get().logAll(tevent);
+
         //--- Process the TOUCH EVENT based on the gesture
         switch (interaction) {
         case SWIPE_LCLICK:
@@ -101,6 +107,11 @@ public class Actioner {
                     if (!vPressed) {
                         Log.d(TAG, "------- Pressed ---------");
                         Networker.get().sendAction(Config.ACT_PRESS_PRI);
+                        // Log
+                        Mologger.get().log(tevent +
+                                "--dX=" + dX +
+                                "--dY=" + dY);
+
                         vPressed = true;
                     }
                 }
@@ -114,6 +125,9 @@ public class Actioner {
                 if (vPressed) {
                     Log.d(TAG, "------- Released ---------");
                     Networker.get().sendAction(Config.ACT_RELEASE_PRI);
+                    // Log
+                    Mologger.get().log(tevent.toString());
+
                     vPressed = false;
                 }
             }
@@ -144,10 +158,13 @@ public class Actioner {
         // TAP starts from UP
         case MotionEvent.ACTION_UP: case MotionEvent.ACTION_POINTER_UP:
             long time = System.currentTimeMillis();
-            if (time - actionStartTime < Config.TAP_DUR) { // Was it a tap?
+            long dt = time - actionStartTime;
+            if (dt < Config.TAP_DUR) { // Was it a tap?
                 Log.d(TAG, "------- TAP! ---------");
                 if (toVibrate) vibrate(100);
                 Networker.get().sendAction(Config.ACT_CLICK);
+                // Log
+                Mologger.get().log(tevent + "--dt=" + dt);
             }
 
             break;

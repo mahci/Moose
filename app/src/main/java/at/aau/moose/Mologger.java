@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.LocalDate;
+import java.util.Objects;
 
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.PublishSubject;
@@ -22,7 +24,7 @@ public class Mologger {
 
     private static Mologger self; // for singleton
 
-    private boolean toLog = false;
+    private boolean isLogging = false;
 
     // Naming
     private static String LOGS_DIR;
@@ -32,10 +34,11 @@ public class Mologger {
     private static String BLK_FILE_PFX  = "BLK";
 
     // Values
-    private String participID;
-    private String participLogPath;
+    private String ptcDirPath = "";
+    private String expDirPath = "";
     private PrintWriter blockLogFile;
-    private int expNum;
+    private PrintWriter allLogFile;
+//    private int expNum;
 
     /**
      * Get the instance
@@ -90,31 +93,29 @@ public class Mologger {
      * @param pid Participant id
      */
     public void setupParticipantLog(String pid) {
-        participID = pid;
+//        participID = pid;
 
         // Create appropriate directory
-        String ptcDirPath = LOGS_DIR + PTC_PFX + participID;
-        File folder = new File(ptcDirPath);
-        boolean success = true;
-        if (!folder.exists()) {
-            success = folder.mkdirs();
-        }
-
-        if (success){
-            participLogPath = ptcDirPath + "/";
-            Log.d(TAG, "Participant folder created");
-        }
-        else Log.d(TAG, "Problem in creating participant folder");
+        String dir = LOGS_DIR + PTC_PFX + pid;
+        if (createDir(dir)) ptcDirPath = dir + "/";
     }
 
     /**
      * Set the experiment numebr
-     * @param expNum Experiment number
+     * @param desc Description of the experiment (date, ...)
      */
-    public void setupExperimentLog(int expNum) {
-        this.expNum = expNum;
-        Log.d(TAG, "Experiment set = " + expNum);
+    public void setupExperimentLog(String desc) {
+//        this.expNum = expNum;
+        // Create a folder for the experiment
+        if (!ptcDirPath.equals("")) {
+            String dir = ptcDirPath + desc;
+            if (createDir(dir)) expDirPath = dir + "/";
+        } else {
+            Log.d(TAG, "No particip dir found!");
+        }
+
     }
+
 
     /**
      * Set up a log for the Block
@@ -122,13 +123,19 @@ public class Mologger {
      */
     public void setupBlockLog(int blkNum) {
         // Create the block file
-        if (!participLogPath.isEmpty()) {
+        if (!expDirPath.isEmpty()) {
             try {
-                String blkFilePath = participLogPath +
+                String blkFilePath = expDirPath +
                         BLK_FILE_PFX + "-" + blkNum + ".txt";
 
                 blockLogFile = new PrintWriter(new FileWriter(blkFilePath));
-                Log.d(TAG, "Block log file created");
+
+                String allLogFilePath = expDirPath +
+                        BLK_FILE_PFX + "-" + blkNum + "-all.txt";
+
+                allLogFile = new PrintWriter(new FileWriter(allLogFilePath));
+
+                Log.d(TAG, "Log files created");
             } catch (IOException e) {
                 Log.d(TAG, "Problem in creating block file!");
                 e.printStackTrace();
@@ -141,7 +148,10 @@ public class Mologger {
      */
     public void finishTrialLog() {
         if (blockLogFile != null) {
-            blockLogFile.println("---------------------");
+            blockLogFile.println("---------------------------------");
+        }
+        if (allLogFile != null) {
+            allLogFile.println("---------------------------------");
         }
     }
 
@@ -150,19 +160,56 @@ public class Mologger {
      */
     public void finishBlockLog() {
         blockLogFile.close();
+        allLogFile.close();
     }
 
     /**
      * Log a TouchEvent
-     * @param tevent TouchEvent
+     * @param lg String to log
      */
-    public void log(TouchEvent tevent) {
+    public int log(String lg) {
+        if (!isLogging) return 1;
+
         if (blockLogFile !=null) {
-            blockLogFile.println(tevent);
+            blockLogFile.println(lg);
 //            Log.d(TAG, "Action Logged");
         } else {
             Log.d(TAG, "Can't access block log file!");
         }
+        return 0;
+    }
+
+    public int logAll(TouchEvent tevent) {
+        if (!isLogging) return 1;
+
+        if (allLogFile !=null) {
+            allLogFile.println(tevent);
+//            Log.d(TAG, "Action Logged");
+        } else {
+            Log.d(TAG, "Can't access block log file!");
+        }
+        return 0;
+    }
+
+    /**
+     * Create a dir if not existed
+     * @param path Dir path
+     * @return Success
+     */
+    public boolean createDir(String path) {
+        File folder = new File(path);
+        boolean success = true;
+        if (!folder.exists()) {
+            success = folder.mkdirs();
+        }
+
+        if (success){
+            Log.d(TAG, path + " created");
+        } else {
+            Log.d(TAG, "Problem in creating " + path);
+        }
+
+        return success;
     }
 
     /**
@@ -171,7 +218,7 @@ public class Mologger {
      */
     public void setLogState(boolean logState) {
         Log.d(TAG, "Logging state: " + logState);
-        toLog = logState;
-        if (!logState) blockLogFile.close();
+        isLogging = logState;
+//        if (!logState) blockLogFile.close();
     }
 }
