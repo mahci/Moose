@@ -126,7 +126,12 @@ public class TouchEvent {
 
     @Override
     public String toString() {
-        return "event=" + event +
-                ", time= " + time;
+        if (event != null) {
+            return "event=" + event +
+                    ", time= " + time;
+        } else {
+            return "{Empty TouchEvent}";
+        }
+
     }
 }

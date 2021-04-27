@@ -26,7 +26,7 @@ public class Actioner {
     private boolean toVibrate = false;
 
     // Position of the leftmost finger
-    private Foint lmFingerDownPos;
+    private Foint lmFingerDownPos = new Foint();
 
     // Is virtually pressed?
     private boolean vPressed = false;
