@@ -51,65 +51,7 @@ public class Networker {
                     line = inChannel.readLine();
                     if (line != null) {
                         Log.d(TAG, "Received: " + line);
-                        // Command must be in the format mssg_param
                         processInput(line);
-//                        String[] parts = line.split("_");
-//                        if (parts.length > 0) {
-//                            // Message and param
-//                            String mssg = parts[0];
-//                            String param = parts[1];
-//
-//                            // Command
-//                            switch (mssg) {
-//                            case Config.MSSG_PID:
-//                                // Participant's ID
-//                                Mologger.get().setupParticipantLog(param);
-//                                break;
-//
-//                            case Config.MSSG_BEG_EXP:
-//                                // Tell the MainActivity to begin experimente
-//                                MainActivity.beginExperiment();
-//
-//                                // Experiment description
-//                                Mologger.get().setupExperimentLog(param);
-//                                Mologger.get().setLogState(true);
-//                                break;
-//
-//                            case Config.MSSG_BEG_BLK:
-//                                // Get the experiment number
-//                                int blkNum = Integer.parseInt(param);
-//                                Mologger.get().setupBlockLog(blkNum);
-//                                break;
-//
-//                            case Config.MSSG_END_TRL:
-//                                Mologger.get().finishTrialLog();
-//                                break;
-//
-//                            case Config.MSSG_END_BLK:
-//                                Mologger.get().finishBlockLog();
-//                                break;
-//
-//                            case Config.MSSG_END_EXP:
-//                                Mologger.get().setLogState(false);
-//                                break;
-//
-//                            case Config.MSSG_BEG_LOG:
-//                                Actioner.get().isTrialRunning = true;
-//                                break;
-//
-//                            case Config.MSSG_END_LOG:
-//                                Actioner.get().isTrialRunning = false;
-//                                break;
-//
-//                            case Config.NET_DISCONNECT:
-//                                connect();
-//                                break;
-//                            }
-//
-//                        } else {
-//                            Log.d(TAG, "Command not in the right format");
-//                        }
-
                     } else break;
                 }
                 connect();
@@ -130,6 +72,10 @@ public class Networker {
         new ConnectTask().execute();
     }
 
+    /**
+     * Process the input command
+     * @param inStr Input String
+     */
     private void processInput(String inStr) {
         Log.d(TAG, "Process: " + inStr);
         // Command must be in the format mssg_param
@@ -207,7 +153,7 @@ public class Networker {
     }
 
     /**
-     * Connections task
+     * Connections task (Background)
      */
     @SuppressLint("StaticFieldLeak")
     private class ConnectTask extends AsyncTask<String, Void, String> {
@@ -240,7 +186,7 @@ public class Networker {
                     return "FAIL";
 
                 } catch (IOException e) {
-                    e.printStackTrace();
+//                    e.printStackTrace();
                     Log.d(TAG, e.toString());
                     Log.d(TAG, "Reconnecting...");
                     try {
@@ -248,7 +194,6 @@ public class Networker {
                     } catch (InterruptedException interruptedException) {
                         interruptedException.printStackTrace();
                     }
-//                        return "FAIL";
                 }
             }
 
