@@ -87,12 +87,12 @@ public class Networker {
 
             // Command
             switch (mssg) {
-            case Config.MSSG_PID:
+            case Strings.MSSG_PID:
                 // Participant's ID
                 Mologger.get().setupParticipantLog(param);
                 break;
 
-            case Config.MSSG_BEG_EXP:
+            case Strings.MSSG_BEG_EXP:
                 // Tell the MainActivity to begin experimente
                 MainActivity.beginExperiment();
 
@@ -101,33 +101,33 @@ public class Networker {
                 Mologger.get().setLogState(true);
                 break;
 
-            case Config.MSSG_BEG_BLK:
+            case Strings.MSSG_BEG_BLK:
                 // Get the experiment number
                 int blkNum = Integer.parseInt(param);
                 Mologger.get().setupBlockLog(blkNum);
                 break;
 
-            case Config.MSSG_END_TRL:
+            case Strings.MSSG_END_TRL:
                 Mologger.get().finishTrialLog();
                 break;
 
-            case Config.MSSG_END_BLK:
+            case Strings.MSSG_END_BLK:
                 Mologger.get().finishBlockLog();
                 break;
 
-            case Config.MSSG_END_EXP:
+            case Strings.MSSG_END_EXP:
                 Mologger.get().setLogState(false);
                 break;
 
-            case Config.MSSG_BEG_LOG:
+            case Strings.MSSG_BEG_LOG:
                 Actioner.get().isTrialRunning = true;
                 break;
 
-            case Config.MSSG_END_LOG:
+            case Strings.MSSG_END_LOG:
                 Actioner.get().isTrialRunning = false;
                 break;
 
-            case Config.NET_DISCONNECT:
+            case Strings.NET_DISCONNECT:
                 connect();
                 break;
             }
@@ -175,10 +175,10 @@ public class Networker {
                             new InputStreamReader(socket.getInputStream()));
                     Log.d(TAG, "Channels opened");
                     // Send the first message and get the reply for connection confirmation
-                    outChannel.println(Config.MSSG_MOOSE);
+                    outChannel.println(Strings.MSSG_MOOSE);
 
                     String line = inChannel.readLine();
-                    if (Objects.equals(line, Config.MSSG_CONFIRM)) { // Successful!
+                    if (Objects.equals(line, Strings.MSSG_CONFIRM)) { // Successful!
                         Log.d(TAG, "Connection Successful!");
                         return "SUCCESS";
                     }
@@ -208,6 +208,8 @@ public class Networker {
                 receiverOberservable.subscribe();
             } else {
                 Log.d(TAG, "Connection failed!");
+                // Try to reconnect
+                connect();
             }
         }
     }

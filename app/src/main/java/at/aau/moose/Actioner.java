@@ -106,7 +106,7 @@ public class Actioner {
                     Log.d(TAG, "dX = " + dX + " | " + "dY = " + dY);
                     if (!vPressed) {
                         Log.d(TAG, "------- Pressed ---------");
-                        Networker.get().sendAction(Config.ACT_PRESS_PRI);
+                        Networker.get().sendAction(Strings.ACT_PRESS_PRI);
                         // Log
                         Mologger.get().log(tevent +
                                 "--dX=" + dX +
@@ -124,7 +124,7 @@ public class Actioner {
             if (tevent.isLmFinger()) {
                 if (vPressed) {
                     Log.d(TAG, "------- Released ---------");
-                    Networker.get().sendAction(Config.ACT_RELEASE_PRI);
+                    Networker.get().sendAction(Strings.ACT_RELEASE_PRI);
                     // Log
                     Mologger.get().log(tevent.toString());
 
@@ -162,7 +162,7 @@ public class Actioner {
             if (dt < Config.TAP_DUR) { // Was it a tap?
                 Log.d(TAG, "------- TAP! ---------");
                 if (toVibrate) vibrate(100);
-                Networker.get().sendAction(Config.ACT_CLICK);
+                Networker.get().sendAction(Strings.ACT_CLICK);
                 // Log
                 Mologger.get().log(tevent + "--dt=" + dt);
             }

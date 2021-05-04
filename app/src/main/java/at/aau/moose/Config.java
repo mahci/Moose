@@ -14,31 +14,7 @@ public class Config {
 //    public static final String SERVER_IP = "192.168.2.1";
     public static final String SERVER_IP = "192.168.178.34";
     public static final int SERVER_Port = 8000;
-    public static final int TIMEOUT = 2 * 60 * 1000; // 2 min
-
-    // Messages
-    public static final String MSSG_MOOSE       = "MOOSE";
-    public static final String MSSG_CONFIRM     = "CONFIRM";
-    public static final String MSSG_PID         = "PID";
-    public static final String MSSG_BEG_EXP     = "BEGEXP";
-    public static final String MSSG_END_EXP     = "ENDEXP";
-    public static final String MSSG_BEG_BLK     = "BEGBLK";
-    public static final String MSSG_END_BLK     = "ENDBLK";
-    public static final String MSSG_END_TRL     = "ENDTRL";
-    public static final String MSSG_END_LOG     = "ENDLOG";
-    public static final String MSSG_BEG_LOG     = "BEGLOG";
-    public static final String MSSG_ACK         = "ACK";
-
-    // Actions
-    public static final String ACT_CLICK        = "CLICK";
-    public static final String ACT_PRESS_PRI    = "PRESS_PRI";
-    public static final String ACT_RELEASE_PRI  = "RELEASE_PRI";
-    public static final String ACT_PRESS_SEC    = "PRESS_SEC";
-    public static final String ACT_RELEASE_SEC  = "RELEASE_SEC";
-
-    // Network
-    public static final String NET_CONNECT      = "CONNECT";
-    public static final String NET_DISCONNECT   = "DISCONNECT";
+//    public static final int TIMEOUT = 2 * 60 * 1000; // 2 min
 
     // Thresholds ------------------------------------
     public static final int SWIPE_LCLICK_DY_MIN_MM = 5; // mm
@@ -51,8 +27,8 @@ public class Config {
     // -----------------------------------------------
 
     // Sizes  ----------------------------------------
-    public static final int TAP_REGION_H_MM = 70; // mm
-    public static float _tapRegionH; // px
+//    public static final int TAP_REGION_H_MM = 100; // mm
+//    public static float _tapRegionH; // px
     // -----------------------------------------------
 
     /**
@@ -66,7 +42,7 @@ public class Config {
         _swipeLClickDyMin = SWIPE_LCLICK_DY_MIN_MM * multip;
         _swipeLClickDxMax = SWIPE_LCLICK_DX_MAX_MM * multip;
 
-        _tapRegionH = TAP_REGION_H_MM * multip;
+//        _tapRegionH = TAP_REGION_H_MM * multip;
 
         Log.d(TAG, "Constants ============");
         Log.d(TAG, "Min dY = " + _swipeLClickDyMin + " px");

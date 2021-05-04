@@ -146,7 +146,8 @@ public class MainActivity extends Activity {
                 PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP;
         params.width = WindowManager.LayoutParams.MATCH_PARENT;
-        params.height = (int) (Config._tapRegionH);
+//        params.height = (int) (Config._tapRegionH);
+        params.height = WindowManager.LayoutParams.MATCH_PARENT;
 
         TouchViewGroup view = new TouchViewGroup(this);
 
