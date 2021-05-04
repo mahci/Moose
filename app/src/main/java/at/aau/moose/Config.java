@@ -24,6 +24,8 @@ public class Config {
 
     public static final int TAP_DUR = 300; // ms
 
+    public static final int PALM_AREA_Y = 1080; // px (from the top)
+
     // -----------------------------------------------
 
     // Sizes  ----------------------------------------

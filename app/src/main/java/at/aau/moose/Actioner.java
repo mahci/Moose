@@ -27,6 +27,7 @@ public class Actioner {
 
     // Position of the leftmost finger
     private Foint lmFingerDownPos = new Foint();
+    private Foint tlFingerPos = new Foint();
 
     // Is virtually pressed?
     private boolean vPressed = false;
@@ -92,18 +93,22 @@ public class Actioner {
         // Any number of fingers down, get the leftmost finger's position
         case MotionEvent.ACTION_DOWN: case MotionEvent.ACTION_POINTER_DOWN:
             // Save the initial position of the leftmost finger
-            lmFingerDownPos = tevent.getLmFingerPos();
+//            lmFingerDownPos = tevent.getLmFingerPos();
+            tlFingerPos = tevent.getTopLeftFingerPos();
             break;
 
         // Check for significant movement
         case MotionEvent.ACTION_MOVE:
-//            Log.d(TAG, lmFingerDownPos.toString());
-            if (lmFingerDownPos.hasCoord()) { // Only check if prev. finger down
-                float dY = tevent.getLmFingerPos().y - lmFingerDownPos.y;
-                float dX = tevent.getLmFingerPos().x - lmFingerDownPos.x;
+            Log.d(TAG, tlFingerPos.toString());
+            if (tlFingerPos.hasCoord()) { // Only check if prev. finger down
+                float dY = tevent.getTopLeftFingerPos().y - tlFingerPos.y;
+                float dX = tevent.getTopLeftFingerPos().x - tlFingerPos.x;
+                Log.d(TAG, "TLFP Prev: " + tlFingerPos);
+                Log.d(TAG, "TLFP Next: " + tevent.getTopLeftFingerPos());
+//                Log.d(TAG, "dX = " + dX + " | " + "dY = " + dY);
                 // Is it (only) down Y? => [PRESS]
                 if (dY > Config._swipeLClickDyMin && dX < Config._swipeLClickDxMax) {
-                    Log.d(TAG, "dX = " + dX + " | " + "dY = " + dY);
+                    Log.d(TAG, "Coords: " + tevent.getTopLeftFingerPos());
                     if (!vPressed) {
                         Log.d(TAG, "------- Pressed ---------");
                         Networker.get().sendAction(Strings.ACT_PRESS_PRI);
@@ -121,7 +126,7 @@ public class Actioner {
 
         // LM finger up? => [RELEASE]
         case MotionEvent.ACTION_UP: case MotionEvent.ACTION_POINTER_UP:
-            if (tevent.isLmFinger()) {
+            if (tevent.isTLFinger()) {
                 if (vPressed) {
                     Log.d(TAG, "------- Released ---------");
                     Networker.get().sendAction(Strings.ACT_RELEASE_PRI);

@@ -12,7 +12,7 @@ import android.view.MotionEvent;
  */
 public class TouchEvent {
 
-    private String TAG = "TouchEvent";
+    private String TAG = "Moose_TouchEvent";
 
     private long time;
     private MotionEvent event;
@@ -60,11 +60,29 @@ public class TouchEvent {
             if (event.getX(pi) < event.getX(lmInd)) lmInd = pi;
         }
 
-        Foint foint = new Foint();
-        foint.x = event.getX(lmInd);
-        foint.y = event.getY(lmInd);
+        return new Foint(event.getX(lmInd), event.getY(lmInd));
+    }
 
-        return foint;
+    /**
+     * Find and return the top leftmost finger on the Touch Screen
+     * @return Top left most finger
+     */
+    public Foint getTopLeftFingerPos() {
+        int tlFingerInd = -1;
+        float minX = 720;
+//        Log.d(TAG, "N Points = " + event.getPointerCount());
+        for (int pi = 0; pi < event.getPointerCount(); pi++) {
+            if (event.getX(pi) < minX &&
+                    event.getY(pi) < Config.PALM_AREA_Y) {
+                tlFingerInd = pi;
+                minX = event.getX(pi);
+            }
+        }
+
+        if (tlFingerInd > -1)
+            return new Foint(event.getX(tlFingerInd), event.getY(tlFingerInd));
+        else
+            return new Foint();
     }
 
     /**
@@ -83,6 +101,31 @@ public class TouchEvent {
         for (int pi = 0; pi < event.getPointerCount(); pi++) {
             if (event.getX(pi) < activePntX) return false;
         }
+        return true;
+    }
+
+    /**
+     * Is this the top leftmost finger?
+     * @return Boolean
+     */
+    public boolean isTLFinger() {
+        // Find the active index
+        int activePntInd =
+                (event.getAction() &
+                        MotionEvent.ACTION_POINTER_INDEX_MASK)
+                        >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
+            Log.d(TAG, "Active Index = " + activePntInd);
+        // Is it the leftmost pointer?
+        float activePntX = event.getX(activePntInd);
+        float activePntY = event.getY(activePntInd);
+        if (activePntY > Config.PALM_AREA_Y) return false; // It is really low!
+        else {
+            Log.d(TAG, "Inside");
+            for (int pi = 0; pi < event.getPointerCount(); pi++) {
+                if (event.getX(pi) < activePntX) return false;
+            }
+        }
+
         return true;
     }
 
