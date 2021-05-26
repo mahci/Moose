@@ -13,16 +13,16 @@ import io.reactivex.rxjava3.subjects.PublishSubject;
 public class Actioner {
 
     private final String TAG = "Moose_Actioner";
-    //==============================================
 
     private static Actioner self;
 
     //--- Defined gestures and the current gesture
-    private enum INTERACTION {
+    private enum TECHNIQUE {
         SWIPE_LCLICK,
-        TAP_LCLICK
+        TAP_LCLICK,
+        MOUSE_LCLICK
     }
-    private INTERACTION interaction = INTERACTION.SWIPE_LCLICK;
+    private TECHNIQUE _technique = TECHNIQUE.SWIPE_LCLICK;
     private boolean toVibrate = false;
 
     // Position of the leftmost finger
@@ -38,6 +38,8 @@ public class Actioner {
 
     // Is trial running on Expenvi? (for logging)
     public boolean isTrialRunning;
+
+    // ===============================================================================
 
     /**
      * Get the instance
@@ -62,7 +64,6 @@ public class Actioner {
                 });
     }
 
-
     /**
      * Process an input event
      * @param tevent TouchEvent
@@ -73,7 +74,7 @@ public class Actioner {
         Mologger.get().logAll(tevent);
 
         //--- Process the TOUCH EVENT based on the gesture
-        switch (interaction) {
+        switch (_technique) {
         case SWIPE_LCLICK:
             doSwipeLClick(tevent);
             break;
@@ -111,7 +112,7 @@ public class Actioner {
                     Log.d(TAG, "Coords: " + tevent.getTopLeftFingerPos());
                     if (!vPressed) {
                         Log.d(TAG, "------- Pressed ---------");
-                        Networker.get().sendAction(Strings.ACT_PRESS_PRI);
+                        Networker.get().sendAction(Strs.ACT_PRESS_PRI);
                         // Log
                         Mologger.get().log(tevent +
                                 "--dX=" + dX +
@@ -129,7 +130,7 @@ public class Actioner {
             if (tevent.isTLFinger()) {
                 if (vPressed) {
                     Log.d(TAG, "------- Released ---------");
-                    Networker.get().sendAction(Strings.ACT_RELEASE_PRI);
+                    Networker.get().sendAction(Strs.ACT_RELEASE_PRI);
                     // Log
                     Mologger.get().log(tevent.toString());
 
@@ -167,7 +168,7 @@ public class Actioner {
             if (dt < Config.TAP_DUR) { // Was it a tap?
                 Log.d(TAG, "------- TAP! ---------");
                 if (toVibrate) vibrate(100);
-                Networker.get().sendAction(Strings.ACT_CLICK);
+                Networker.get().sendAction(Strs.ACT_CLICK);
                 // Log
                 Mologger.get().log(tevent + "--dt=" + dt);
             }
@@ -184,4 +185,23 @@ public class Actioner {
         vibrator.vibrate(duration);
     }
 
+    /**
+     * Set the technique
+     * @param techStr Name of the technique
+     */
+    public void setTechnique(String techStr) {
+        Log.d(TAG, "Technique set: " + techStr);
+        switch (techStr) {
+        case "SWIPE_LCLICK":
+            _technique = TECHNIQUE.SWIPE_LCLICK;
+            break;
+        case "TAP_LCLICK":
+            _technique = TECHNIQUE.TAP_LCLICK;
+            break;
+        case "MOUSE_LCLICK":
+            _technique = TECHNIQUE.MOUSE_LCLICK;
+            break;
+        }
+
+    }
 }

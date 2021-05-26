@@ -186,19 +186,19 @@ public class MainActivity extends Activity {
         // Intentionally empty to disable the BACK button
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        ActivityManager activityManager =
-                (ActivityManager) getApplicationContext()
-                .getSystemService(Context.ACTIVITY_SERVICE);
-
-        assert activityManager != null;
-        activityManager.moveTaskToFront(
-                getTaskId(),
-                ActivityManager.MOVE_TASK_NO_USER_ACTION);
-
-    }
+//    @Override
+//    protected void onPause() {
+//        super.onPause();
+//        ActivityManager activityManager =
+//                (ActivityManager) getApplicationContext()
+//                .getSystemService(Context.ACTIVITY_SERVICE);
+//
+//        assert activityManager != null;
+//        activityManager.moveTaskToFront(
+//                getTaskId(),
+//                ActivityManager.MOVE_TASK_NO_USER_ACTION);
+//
+//    }
 
     /**
      * Custom view class

@@ -1,6 +1,7 @@
 package at.aau.moose;
 
 import android.annotation.SuppressLint;
+import android.app.Notification;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -14,7 +15,6 @@ import java.util.Objects;
 
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
-import io.reactivex.rxjava3.subjects.PublishSubject;
 
 public class Networker {
 
@@ -79,63 +79,59 @@ public class Networker {
     private void processInput(String inStr) {
         Log.d(TAG, "Process: " + inStr);
         // Command must be in the format mssg_param
-        String[] parts = inStr.split("_");
-        if (parts.length > 0) {
-            // Message and param
-            String mssg = parts[0];
-            String param = parts[1];
+        // Message and param
+        String mssg = Utils.splitStr(inStr)[0];
+        String param = Utils.splitStr(inStr)[1];
 
-            // Command
-            switch (mssg) {
-            case Strings.MSSG_PID:
-                // Participant's ID
-                Mologger.get().setupParticipantLog(param);
-                break;
+        // Command
+        switch (mssg) {
+        case Strs.MSSG_TECHNIQUE:
+            Actioner.get().setTechnique(param);
+            break;
+        case Strs.MSSG_PID:
+            // Participant's ID
+            Mologger.get().setupParticipantLog(param);
+            break;
 
-            case Strings.MSSG_BEG_EXP:
-                // Tell the MainActivity to begin experimente
-                MainActivity.beginExperiment();
+        case Strs.MSSG_BEG_EXP:
+            // Tell the MainActivity to begin experimente
+            MainActivity.beginExperiment();
 
-                // Experiment description
-                Mologger.get().setupExperimentLog(param);
-                Mologger.get().setLogState(true);
-                break;
+            // Experiment description
+            Mologger.get().setupExperimentLog(param);
+            Mologger.get().setLogState(true);
+            break;
 
-            case Strings.MSSG_BEG_BLK:
-                // Get the experiment number
-                int blkNum = Integer.parseInt(param);
-                Mologger.get().setupBlockLog(blkNum);
-                break;
+        case Strs.MSSG_BEG_BLK:
+            // Get the experiment number
+            int blkNum = Integer.parseInt(param);
+            Mologger.get().setupBlockLog(blkNum);
+            break;
 
-            case Strings.MSSG_END_TRL:
-                Mologger.get().finishTrialLog();
-                break;
+        case Strs.MSSG_END_TRL:
+            Mologger.get().finishTrialLog();
+            break;
 
-            case Strings.MSSG_END_BLK:
-                Mologger.get().finishBlockLog();
-                break;
+        case Strs.MSSG_END_BLK:
+            Mologger.get().finishBlockLog();
+            break;
 
-            case Strings.MSSG_END_EXP:
-                Mologger.get().setLogState(false);
-                break;
+        case Strs.MSSG_END_EXP:
+            Mologger.get().setLogState(false);
+            break;
 
-            case Strings.MSSG_BEG_LOG:
-                Actioner.get().isTrialRunning = true;
-                break;
+        case Strs.MSSG_BEG_LOG:
+            Actioner.get().isTrialRunning = true;
+            break;
 
-            case Strings.MSSG_END_LOG:
-                Actioner.get().isTrialRunning = false;
-                break;
+        case Strs.MSSG_END_LOG:
+            Actioner.get().isTrialRunning = false;
+            break;
 
-            case Strings.NET_DISCONNECT:
-                connect();
-                break;
-            }
-
-        } else {
-            Log.d(TAG, "Command not in the right format");
+        case Strs.NET_DISCONNECT:
+            connect();
+            break;
         }
-
     }
 
     /**
@@ -162,7 +158,6 @@ public class Networker {
         protected String doInBackground(String... tasks) {
 
             Log.d(TAG, "Connecting to Expenvi...");
-            long t0 = now();
 
             while (true) {
                 try {
@@ -174,11 +169,12 @@ public class Networker {
                     inChannel = new BufferedReader(
                             new InputStreamReader(socket.getInputStream()));
                     Log.d(TAG, "Channels opened");
-                    // Send the first message and get the reply for connection confirmation
-                    outChannel.println(Strings.MSSG_MOOSE);
 
+                    // Send the first message and get the reply for connection confirmation
+                    outChannel.println(Strs.MSSG_MOOSE);
                     String line = inChannel.readLine();
-                    if (Objects.equals(line, Strings.MSSG_CONFIRM)) { // Successful!
+                    Log.d(TAG, "Line: " + line);
+                    if (Objects.equals(line, Strs.MSSG_CONFIRM)) { // Confirmation
                         Log.d(TAG, "Connection Successful!");
                         return "SUCCESS";
                     }
