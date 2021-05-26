@@ -108,7 +108,7 @@ public class Actioner {
                 Log.d(TAG, "TLFP Next: " + tevent.getTopLeftFingerPos());
 //                Log.d(TAG, "dX = " + dX + " | " + "dY = " + dY);
                 // Is it (only) down Y? => [PRESS]
-                if (dY > Config._swipeLClickDyMin && dX < Config._swipeLClickDxMax) {
+                if (dY > Config._swipeLClickDyMin) {
                     Log.d(TAG, "Coords: " + tevent.getTopLeftFingerPos());
                     if (!vPressed) {
                         Log.d(TAG, "------- Pressed ---------");
