@@ -18,11 +18,11 @@ public class Actioner {
 
     //--- Defined gestures and the current gesture
     private enum TECHNIQUE {
-        SWIPE_LCLICK,
-        TAP_LCLICK,
-        MOUSE_LCLICK
+        SWIPE,
+        TAP,
+        MOUSE
     }
-    private TECHNIQUE _technique = TECHNIQUE.SWIPE_LCLICK;
+    private TECHNIQUE _technique = TECHNIQUE.SWIPE;
     private boolean toVibrate = false;
 
     // Position of the leftmost finger
@@ -75,10 +75,10 @@ public class Actioner {
 
         //--- Process the TOUCH EVENT based on the gesture
         switch (_technique) {
-        case SWIPE_LCLICK:
+        case SWIPE:
             doSwipeLClick(tevent);
             break;
-        case TAP_LCLICK:
+        case TAP:
             doTapLClick(tevent);
             break;
         }
@@ -192,14 +192,14 @@ public class Actioner {
     public void setTechnique(String techStr) {
         Log.d(TAG, "Technique set: " + techStr);
         switch (techStr) {
-        case "SWIPE_LCLICK":
-            _technique = TECHNIQUE.SWIPE_LCLICK;
+        case "SWIPE":
+            _technique = TECHNIQUE.SWIPE;
             break;
-        case "TAP_LCLICK":
-            _technique = TECHNIQUE.TAP_LCLICK;
+        case "TAP":
+            _technique = TECHNIQUE.TAP;
             break;
-        case "MOUSE_LCLICK":
-            _technique = TECHNIQUE.MOUSE_LCLICK;
+        case "MOUSE":
+            _technique = TECHNIQUE.MOUSE;
             break;
         }
 
