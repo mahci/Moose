@@ -22,7 +22,7 @@ public class Actioner {
         TAP,
         MOUSE
     }
-    private TECHNIQUE _technique = TECHNIQUE.SWIPE;
+    public TECHNIQUE _technique;
     private boolean toVibrate = false;
 
     // Position of the leftmost finger
@@ -32,6 +32,7 @@ public class Actioner {
     // Is virtually pressed?
     private boolean vPressed = false;
     private long actionStartTime; // Both for time keeping and checking if action is started
+    private boolean actionCancelled;
 
     // [TEST]
     public Vibrator vibrator;
@@ -150,22 +151,34 @@ public class Actioner {
         switch (tevent.getAction()) {
         // Any number of fingers down, save the leftmost finger's position
         case MotionEvent.ACTION_DOWN: case MotionEvent.ACTION_POINTER_DOWN:
-            lmFingerDownPos = tevent.getLmFingerPos();
-            if (tevent.isLmFinger()) {
+//            lmFingerDownPos = tevent.getLmFingerPos();
+            tlFingerPos = tevent.getTopLeftFingerPos();
+            if (tevent.isTLFinger()) {
 //                Log.d(TAG, "------- LM Down ---------");
                 actionStartTime = System.currentTimeMillis();
+                actionCancelled = false;
             }
             break;
 
         // Check for significant movement
         case MotionEvent.ACTION_MOVE:
+            Log.d(TAG, tlFingerPos.toString());
+            // If moved more than a threshold, cancel the action
+            if (tlFingerPos.hasCoord()) { // Only check if prev. finger down
+                double mDist = tevent.getTopLeftFingerPos().dist(tlFingerPos);
+                Log.d(TAG, "mDist = " + mDist);
+                if (mDist >= Config._swipeLClickDyMin) {
+                    actionCancelled = true;
+                }
+            }
+
             break;
 
         // TAP starts from UP
         case MotionEvent.ACTION_UP: case MotionEvent.ACTION_POINTER_UP:
             long time = System.currentTimeMillis();
             long dt = time - actionStartTime;
-            if (dt < Config.TAP_DUR) { // Was it a tap?
+            if (!actionCancelled && dt < Config.TAP_DUR) { // TAP recognized!
                 Log.d(TAG, "------- TAP! ---------");
                 if (toVibrate) vibrate(100);
                 Networker.get().sendAction(Strs.ACT_CLICK);

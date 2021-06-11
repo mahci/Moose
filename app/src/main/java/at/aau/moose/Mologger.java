@@ -35,6 +35,7 @@ public class Mologger {
 
     // Values
     private String ptcDirPath = "";
+    private String phaseDirPath = "";
     private String expDirPath = "";
     private PrintWriter blockLogFile;
     private PrintWriter allLogFile;
@@ -98,6 +99,18 @@ public class Mologger {
         // Create appropriate directory
         String dir = LOGS_DIR + PTC_PFX + pid;
         if (createDir(dir)) ptcDirPath = dir + "/";
+    }
+
+    /**
+     * Log the start of a phase
+     * @param phase String
+     */
+    public void logPhaseStart(String phase) {
+        // Create a dir for the phase
+        String phaseDir = ptcDirPath + "/" +
+                phase + "-" +
+                Actioner.get()._technique;
+        if (createDir(phaseDir)) phaseDirPath = phaseDir;
     }
 
     /**

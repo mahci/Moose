@@ -92,7 +92,9 @@ public class Networker {
             // Participant's ID
             Mologger.get().setupParticipantLog(param);
             break;
+        case Strs.MSSG_BEG_PHS:
 
+            break;
         case Strs.MSSG_BEG_EXP:
             // Tell the MainActivity to begin experimente
             MainActivity.beginExperiment();

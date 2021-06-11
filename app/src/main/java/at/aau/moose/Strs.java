@@ -7,6 +7,7 @@ public class Strs {
     public static final String MSSG_CONFIRM     = "CONFIRM";
     public static final String MSSG_TECHNIQUE   = "TECH";
     public static final String MSSG_PID         = "PID";
+    public static final String MSSG_BEG_PHS     = "BEGPHS";
     public static final String MSSG_BEG_EXP     = "BEGEXP";
     public static final String MSSG_END_EXP     = "ENDEXP";
     public static final String MSSG_BEG_BLK     = "BEGBLK";
