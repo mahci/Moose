@@ -93,7 +93,8 @@ public class Networker {
             Mologger.get().setupParticipantLog(param);
             break;
         case Strs.MSSG_BEG_PHS:
-
+            // Log the start of the phase
+            Mologger.get().logPhaseStart(param);
             break;
         case Strs.MSSG_BEG_EXP:
             // Tell the MainActivity to begin experimente
@@ -107,7 +108,8 @@ public class Networker {
         case Strs.MSSG_BEG_BLK:
             // Get the experiment number
             int blkNum = Integer.parseInt(param);
-            Mologger.get().setupBlockLog(blkNum);
+//            Mologger.get().setupBlockLog(blkNum);
+            Mologger.get().logBlockStart(blkNum);
             break;
 
         case Strs.MSSG_END_TRL:

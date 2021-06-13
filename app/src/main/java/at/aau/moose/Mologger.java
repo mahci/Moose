@@ -110,7 +110,10 @@ public class Mologger {
         String phaseDir = ptcDirPath + "/" +
                 phase + "-" +
                 Actioner.get()._technique;
-        if (createDir(phaseDir)) phaseDirPath = phaseDir;
+        if (createDir(phaseDir)) {
+            phaseDirPath = phaseDir + "/";
+            if (phase != "SHOWCASE") isLogging = true;
+        }
     }
 
     /**
@@ -129,6 +132,26 @@ public class Mologger {
 
     }
 
+    public void logBlockStart(int blkNum) {
+        if (!phaseDirPath.isEmpty()) {
+            try {
+                String blkFilePath = phaseDirPath +
+                        BLK_FILE_PFX + "-" + blkNum + ".txt";
+
+                blockLogFile = new PrintWriter(new FileWriter(blkFilePath));
+
+                String allLogFilePath = phaseDirPath +
+                        BLK_FILE_PFX + "-" + blkNum + "-all.txt";
+
+                allLogFile = new PrintWriter(new FileWriter(allLogFilePath));
+
+                Log.d(TAG, "Log files created");
+            } catch (IOException e) {
+                Log.d(TAG, "Problem in creating block file!");
+                e.printStackTrace();
+            }
+        }
+    }
 
     /**
      * Set up a log for the Block

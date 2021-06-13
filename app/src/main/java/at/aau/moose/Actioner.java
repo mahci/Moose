@@ -75,13 +75,15 @@ public class Actioner {
         Mologger.get().logAll(tevent);
 
         //--- Process the TOUCH EVENT based on the gesture
-        switch (_technique) {
-        case SWIPE:
-            doSwipeLClick(tevent);
-            break;
-        case TAP:
-            doTapLClick(tevent);
-            break;
+        if (_technique != null) {
+            switch (_technique) {
+            case SWIPE:
+                doSwipeLClick(tevent);
+                break;
+            case TAP:
+                doTapLClick(tevent);
+                break;
+            }
         }
 
     }
