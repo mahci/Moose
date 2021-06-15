@@ -2,7 +2,6 @@ package at.aau.moose;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
@@ -59,7 +58,6 @@ public class MainActivity extends Activity {
             init();
             // Done!
             Log.d(TAG, "Initization finished!");
-
         }
 
         // Set the content of the activity
@@ -104,13 +102,14 @@ public class MainActivity extends Activity {
         eventPublisher = PublishSubject.create();
 
         // Subscribe the classes to receive actions
-        Actioner.get().subscribeToEvents(eventPublisher);
-        Mologger.get().subscribeToEvents(eventPublisher);
+//        Actioner.get().subscribeToEvents(eventPublisher);
+//        Mologger.get().subscribeToEvents(eventPublisher);
 
         // Connect to the Empenvi
         Networker.get().connect();
 
         // [TEST]
+        Actioner.get()._technique = Actioner.TECHNIQUE.SWIPE;
         Actioner.get().vibrator = (Vibrator)getSystemService(VIBRATOR_SERVICE);
     }
 
@@ -236,12 +235,12 @@ public class MainActivity extends Activity {
         @SuppressLint("ClickableViewAccessibility")
         @Override
         public boolean onTouchEvent(MotionEvent event) {
-
             // Publish the event (mostly for Actioner)
-            publishEvent(event);
+//            publishEvent(event);
+            Actioner.get().processMotion(event);
 
             // Log the action
-//            Mologger.get().log(event);
+            Mologger.get().logAll(event);
 
             return super.onTouchEvent(event);
         }

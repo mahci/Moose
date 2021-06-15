@@ -11,6 +11,8 @@ public class Strs {
     public static final String MSSG_BEG_EXP     = "BEGEXP";
     public static final String MSSG_END_EXP     = "ENDEXP";
     public static final String MSSG_BEG_BLK     = "BEGBLK";
+    public static final String MSSG_SBLK        = "SBLK";
+    public static final String MSSG_TRL         = "TRL";
     public static final String MSSG_END_BLK     = "ENDBLK";
     public static final String MSSG_END_TRL     = "ENDTRL";
     public static final String MSSG_END_LOG     = "ENDLOG";

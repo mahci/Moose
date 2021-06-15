@@ -15,6 +15,7 @@ import java.util.Objects;
 
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
+import io.reactivex.rxjava3.subjects.PublishSubject;
 
 public class Networker {
 
@@ -65,6 +66,18 @@ public class Networker {
     }
 
     /**
+     * Subscribe to get the messages (to send to the desktop)
+     * @param mssgPublisher Publisher of String messages
+     */
+    public void subscribeToMessages(PublishSubject<String> mssgPublisher) {
+        mssgPublisher
+                .observeOn(Schedulers.io())
+                .subscribe(actionStr -> {
+                    sendAction(actionStr);
+                });
+    }
+
+    /**
      * Connect to Empenvi
      */
     public void connect() {
@@ -90,11 +103,21 @@ public class Networker {
             break;
         case Strs.MSSG_PID:
             // Participant's ID
-            Mologger.get().setupParticipantLog(param);
+//            Mologger.get().setupParticipantLog(param);
+            Mologger.get().logParticipant(param);
             break;
         case Strs.MSSG_BEG_PHS:
             // Log the start of the phase
-            Mologger.get().logPhaseStart(param);
+//            Mologger.get().logPhaseStart(param);
+            Mologger.get()._phase = param;
+            break;
+        case Strs.MSSG_SBLK:
+            int sblkNum = Integer.parseInt(param);
+            Mologger.get()._subblockNum = sblkNum;
+            break;
+        case Strs.MSSG_TRL:
+            int trlNum = Integer.parseInt(param);
+            Mologger.get()._trialNum = trlNum;
             break;
         case Strs.MSSG_BEG_EXP:
             // Tell the MainActivity to begin experimente
@@ -109,7 +132,8 @@ public class Networker {
             // Get the experiment number
             int blkNum = Integer.parseInt(param);
 //            Mologger.get().setupBlockLog(blkNum);
-            Mologger.get().logBlockStart(blkNum);
+//            Mologger.get().logBlockStart(blkNum);
+
             break;
 
         case Strs.MSSG_END_TRL:

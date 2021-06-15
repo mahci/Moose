@@ -17,7 +17,7 @@ public class Actioner {
     private static Actioner self;
 
     //--- Defined gestures and the current gesture
-    private enum TECHNIQUE {
+    public enum TECHNIQUE {
         SWIPE,
         TAP,
         MOUSE
@@ -25,13 +25,26 @@ public class Actioner {
     public TECHNIQUE _technique;
     private boolean toVibrate = false;
 
+
+
     // Position of the leftmost finger
     private Foint lmFingerDownPos = new Foint();
     private Foint tlFingerPos = new Foint();
+    private final int INVALID_POINTER_ID = -1;
+    private int leftPointerID = INVALID_POINTER_ID;
+    private int upPointerIndex;
+    private MotionEvent.PointerCoords startPCoords = new MotionEvent.PointerCoords();
+    private MotionEvent.PointerCoords endPCoords = new MotionEvent.PointerCoords();
+    private long actionStartTime; // Both for time keeping and checking if action is started
+    private long pressDuration;
+    private long duration;
+    private float dX, dY;
+    private int nExtraFingers;
+    private MotionEvent.PointerCoords extra1PCoords = new MotionEvent.PointerCoords();
+    private MotionEvent.PointerCoords extra2PCoords = new MotionEvent.PointerCoords();
 
     // Is virtually pressed?
     private boolean vPressed = false;
-    private long actionStartTime; // Both for time keeping and checking if action is started
     private boolean actionCancelled;
 
     // [TEST]
@@ -39,6 +52,9 @@ public class Actioner {
 
     // Is trial running on Expenvi? (for logging)
     public boolean isTrialRunning;
+
+    // For calling the Networker (can't call directly)
+    private PublishSubject<String> mssgPublisher;
 
     // ===============================================================================
 
@@ -51,6 +67,11 @@ public class Actioner {
             self = new Actioner();
         }
         return self;
+    }
+
+    public Actioner() {
+        mssgPublisher = PublishSubject.create();
+        Networker.get().subscribeToMessages(mssgPublisher);
     }
 
     /**
@@ -69,7 +90,7 @@ public class Actioner {
      * Process an input event
      * @param tevent TouchEvent
      */
-    private void processEvent(TouchEvent tevent) {
+    public void processEvent(TouchEvent tevent) {
 //        Log.d(TAG, "Action: " + Const.actionToString(tevent.getAction()));
         // Sent to Mologger for logging (if isLogging there)
         Mologger.get().logAll(tevent);
@@ -89,57 +110,315 @@ public class Actioner {
     }
 
     /**
+     * Process the given MotionEvent
+     * @param me MotionEvent
+     */
+    public void processMotion(MotionEvent me) {
+        //--- Process the TOUCH EVENT based on the gesture
+        if (_technique != null) {
+            switch (_technique) {
+            case SWIPE:
+                swipeLClick(me);
+                break;
+            case TAP:
+                tapLClick(me);
+                break;
+            }
+        }
+    }
+
+    /**
+     * SWIPE L-CLICK
+     * @param me MotionEvent
+     */
+    public void swipeLClick(MotionEvent me) {
+        int leftIndex;
+        switch (me.getActionMasked()) {
+            // Only one finger is on the screen
+        case MotionEvent.ACTION_DOWN:
+            leftIndex = 0;
+            leftPointerID = me.getPointerId(leftIndex); // The only finger
+            me.getPointerCoords(0, startPCoords); // Fill the coords
+            break;
+            // More fingers are added
+        case MotionEvent.ACTION_POINTER_DOWN:
+            leftIndex = findLeftPointerIndex(me); // Find the new left pointer
+            leftPointerID = me.getPointerId(leftIndex); // Set ID
+            me.getPointerCoords(leftIndex, startPCoords); // Fill the coords
+            break;
+            // Last finger is up
+        case MotionEvent.ACTION_UP:
+            // Check if the active finger has gone up
+            upPointerIndex = me.getActionIndex();
+            if (vPressed && me.getPointerId(upPointerIndex) == leftPointerID) { // Release
+                Log.d(TAG, "------- Released ---------");
+                vPressed = false;
+                duration = System.currentTimeMillis() - actionStartTime;
+                mssgPublisher.onNext(Strs.ACT_RELEASE_PRI);
+
+                // log the release
+                Mologger.get().logMeta(
+                        startPCoords, endPCoords,
+                        pressDuration, duration,
+                        dX, dY,
+                        nExtraFingers, extra1PCoords, extra2PCoords);
+            }
+
+            // Reset all the values
+            leftPointerID = INVALID_POINTER_ID; // No figner on the screen
+            startPCoords.clear();
+            actionStartTime = 0;
+            break;
+            // Second, third, ... fingers are up
+        case MotionEvent.ACTION_POINTER_UP:
+            // Check if the active finger has gone up
+            upPointerIndex = me.getActionIndex();
+            if (vPressed && me.getPointerId(upPointerIndex) == leftPointerID) { // Release
+                Log.d(TAG, "------- Released ---------");
+                vPressed = false;
+                duration = System.currentTimeMillis() - actionStartTime;
+                mssgPublisher.onNext(Strs.ACT_RELEASE_PRI); // Send the action
+
+                // log the release
+                Mologger.get().logMeta(
+                        startPCoords, endPCoords,
+                        pressDuration, duration,
+                        dX, dY,
+                        nExtraFingers, extra1PCoords, extra2PCoords);
+            }
+
+            // Recalculate the left finger
+            leftIndex = findLeftPointerIndex(me);
+            leftPointerID = me.getPointerId(leftIndex); // Set ID
+            me.getPointerCoords(leftIndex, startPCoords); // Fill the coords
+            break;
+            // Main process
+        case MotionEvent.ACTION_MOVE:
+            if (startPCoords.x != 0) { // There is coords
+                // Set the start of the movement time
+                if (actionStartTime == 0) actionStartTime = System.currentTimeMillis();
+
+                MotionEvent.PointerCoords newLeftPCoords = new MotionEvent.PointerCoords();
+                int activePIndex = me.findPointerIndex(leftPointerID);
+                if (activePIndex > -1) {
+                    me.getPointerCoords(activePIndex, newLeftPCoords);
+                }
+//                Log.d(TAG, "leftPointerID= " + leftPointerID);
+//
+//                Log.d(TAG, "activePIndex= " + activePIndex);
+//                Log.d(TAG, "newLeftPCoords= " + newLeftPCoords.y);
+                // Check the movement condition
+                dY = newLeftPCoords.y - startPCoords.y;
+//                Log.d(TAG, "dY= " + dY);
+                if (dY > Config._swipeLClickDyMin) {
+
+                    if (!vPressed) { // Only press once
+                        vPressed = true; // Flag
+                        Log.d(TAG, "------- Pressed ---------");
+                        mssgPublisher.onNext(Strs.ACT_PRESS_PRI); // Send the action
+                    }
+
+                    pressDuration = System.currentTimeMillis() - actionStartTime; // Press dur.
+                    endPCoords.copyFrom(newLeftPCoords); // Action end coords
+                    dX = newLeftPCoords.x - startPCoords.x; // dX
+                    nExtraFingers = me.getPointerCount() - 1;
+                    if (nExtraFingers > 0) me.getPointerCoords(1, extra1PCoords);
+                    if (nExtraFingers > 1) me.getPointerCoords(2, extra2PCoords);
+                }
+            }
+            break;
+
+        }
+    }
+
+    /**
+     * TAP L-CLICK
+     * @param me MotionEvent
+     */
+    public void tapLClick(MotionEvent me) {
+        int leftIndex;
+        switch (me.getActionMasked()) {
+        // Only one finger is on the screen
+        case MotionEvent.ACTION_DOWN:
+            leftIndex = 0;
+            leftPointerID = me.getPointerId(leftIndex); // The only finger
+            me.getPointerCoords(0, startPCoords); // Fill the coords
+
+            // Start the TAP action
+            actionStartTime = System.currentTimeMillis();
+            break;
+        // More fingers are added
+        case MotionEvent.ACTION_POINTER_DOWN:
+            leftIndex = findLeftPointerIndex(me); // Find the new left pointer
+            leftPointerID = me.getPointerId(leftIndex); // Set ID
+            me.getPointerCoords(leftIndex, startPCoords); // Fill the coords
+
+            // Start the TAP action
+            actionStartTime = System.currentTimeMillis();
+            break;
+        // Last finger is up
+        case MotionEvent.ACTION_UP:
+            // Check if the active finger has gone up
+            upPointerIndex = me.getActionIndex();
+            if (me.getPointerId(upPointerIndex) == leftPointerID) { // TAP is done?
+                duration = System.currentTimeMillis() - actionStartTime;
+                double dist = Utils.distance(startPCoords, endPCoords);
+                if (dist <= Config._swipeLClickDyMin && duration < Config.TAP_DUR) {
+                    Log.d(TAG, "------- Click ---------");
+                    mssgPublisher.onNext(Strs.ACT_CLICK);
+
+                    // log the release
+                    dX = endPCoords.x - startPCoords.x;
+                    dY = endPCoords.y - startPCoords.y;
+                    Mologger.get().logMeta(
+                            startPCoords, endPCoords,
+                            pressDuration, duration,
+                            dX, dY,
+                            nExtraFingers, extra1PCoords, extra2PCoords);
+                }
+            }
+
+            // Reset all the values
+            leftPointerID = INVALID_POINTER_ID; // No figner on the screen
+            startPCoords.clear();
+            actionStartTime = 0;
+            break;
+        // Second, third, ... fingers are up
+        case MotionEvent.ACTION_POINTER_UP:
+            // Check if the active finger has gone up
+            upPointerIndex = me.getActionIndex();
+            if (me.getPointerId(upPointerIndex) == leftPointerID) { // TAP is done?
+                duration = System.currentTimeMillis() - actionStartTime;
+                double dist = Utils.distance(startPCoords, endPCoords);
+                if (dist <= Config._swipeLClickDyMin && duration < Config.TAP_DUR) {
+                    Log.d(TAG, "------- Click ---------");
+                    mssgPublisher.onNext(Strs.ACT_CLICK);
+
+                    // log the release
+                    dX = endPCoords.x - startPCoords.x;
+                    dY = endPCoords.y - startPCoords.y;
+                    Mologger.get().logMeta(
+                            startPCoords, endPCoords,
+                            pressDuration, duration,
+                            dX, dY,
+                            nExtraFingers, extra1PCoords, extra2PCoords);
+                }
+            }
+
+            // Recalculate the left finger
+            leftIndex = findLeftPointerIndex(me);
+            leftPointerID = me.getPointerId(leftIndex); // Set ID
+            me.getPointerCoords(leftIndex, startPCoords); // Fill the coords
+            break;
+        // Main process
+        case MotionEvent.ACTION_MOVE:
+            if (startPCoords.x != 0) { // There is coords
+                int activePIndex = me.findPointerIndex(leftPointerID);
+                if (activePIndex > -1) {
+                    me.getPointerCoords(activePIndex, endPCoords);
+                }
+            }
+            break;
+
+        }
+    }
+
+    public int findLeftPointerIndex(MotionEvent me) {
+        int leftPointerIndex = 0;
+
+        for (int pindex = 1; pindex < me.getPointerCount(); pindex++) {
+            if (me.getX(pindex) < me.getX(0)) // Lefter finger!
+                leftPointerIndex = pindex;
+        }
+
+        return leftPointerIndex;
+    }
+
+    /**
      * Swipe down with leftmost finger to perform press-release
      * @param tevent TouchEvent
      */
     private void doSwipeLClick(TouchEvent tevent) {
+
         switch (tevent.getAction()) {
-        // Any number of fingers down, get the leftmost finger's position
         case MotionEvent.ACTION_DOWN: case MotionEvent.ACTION_POINTER_DOWN:
-            // Save the initial position of the leftmost finger
-//            lmFingerDownPos = tevent.getLmFingerPos();
-            tlFingerPos = tevent.getTopLeftFingerPos();
+            // Active = the only finger on the screen
+//            activePointerID = tevent.getEvent().getPointerId(0);
+            leftPointerID = tevent.getLeftFingerID();
+            startPCoords = tevent.getLeftPointerCoords();
+            Log.d(TAG, "leftPointerID= " + leftPointerID);
+            Log.d(TAG, "leftPCoords= " + startPCoords.y);
             break;
 
         // Check for significant movement
         case MotionEvent.ACTION_MOVE:
-            Log.d(TAG, tlFingerPos.toString());
-            if (tlFingerPos.hasCoord()) { // Only check if prev. finger down
-                float dY = tevent.getTopLeftFingerPos().y - tlFingerPos.y;
-                float dX = tevent.getTopLeftFingerPos().x - tlFingerPos.x;
-                Log.d(TAG, "TLFP Prev: " + tlFingerPos);
-                Log.d(TAG, "TLFP Next: " + tevent.getTopLeftFingerPos());
-//                Log.d(TAG, "dX = " + dX + " | " + "dY = " + dY);
-                // Is it (only) down Y? => [PRESS]
+//            Log.d(TAG, tlFingerPos.toString());
+//            int nPointers = tevent.getEvent().getPointerCount();
+//            for (int pi = 0; pi < nPointers; pi ++) {
+//                int pindex = tevent.getEvent().findPointerIndex(pi);
+//                MotionEvent.PointerCoords pcoords = new MotionEvent.PointerCoords();
+//                tevent.getEvent().getPointerCoords(pi, pcoords);
+//                Log.d(TAG, "P" + pi + " - index : " +  pindex +
+//                        "| Axis value : " + tevent.getEvent().getAxisValue(MotionEvent.AXIS_Y, pi) +
+//                        "| Coords : " + pcoords);
+//            }
+            if (startPCoords.x != 0) { // There is coords
+                MotionEvent.PointerCoords newLeftPCoords = new MotionEvent.PointerCoords();
+                int activePIndex = tevent.getEvent().findPointerIndex(leftPointerID);
+                Log.d(TAG, "activePIndex= " + activePIndex);
+                if (activePIndex > -1) {
+                    tevent.getEvent().getPointerCoords(activePIndex, newLeftPCoords);
+                }
+                Log.d(TAG, "leftPointerID= " + leftPointerID);
+                Log.d(TAG, "newLeftPCoords= " + newLeftPCoords.y);
+                // Check the movement condition
+                float dY = newLeftPCoords.y - startPCoords.y;
+                Log.d(TAG, "dY= " + dY);
                 if (dY > Config._swipeLClickDyMin) {
-                    Log.d(TAG, "Coords: " + tevent.getTopLeftFingerPos());
-                    if (!vPressed) {
-                        Log.d(TAG, "------- Pressed ---------");
-                        Networker.get().sendAction(Strs.ACT_PRESS_PRI);
-                        // Log
-                        Mologger.get().log(tevent +
-                                "--dX=" + dX +
-                                "--dY=" + dY);
-
-                        vPressed = true;
-                    }
+                    Log.d(TAG, "------- Pressed ---------");
                 }
             }
+
+//            if (tlFingerPos.hasCoord()) { // Only check if prev. finger down
+//                float dY = tevent.getTopLeftFingerPos().y - tlFingerPos.y;
+//                float dX = tevent.getTopLeftFingerPos().x - tlFingerPos.x;
+////                Log.d(TAG, "TLFP Prev: " + tlFingerPos);
+////                Log.d(TAG, "TLFP Next: " + tevent.getTopLeftFingerPos());
+////                Log.d(TAG, "dX = " + dX + " | " + "dY = " + dY);
+//                // Is it down Y? => [PRESS]
+////                Log.d(TAG, "dY = " + dY);
+//                if (dY > Config._swipeLClickDyMin) {
+////                    Log.d(TAG, "Coords: " + tevent.getTopLeftFingerPos());
+//                    if (!vPressed) {
+////                        Log.d(TAG, "------- Pressed ---------");
+//                        Networker.get().sendAction(Strs.ACT_PRESS_PRI);
+//                        // Log
+//                        Mologger.get().log(tevent +
+//                                "--dX=" + dX +
+//                                "--dY=" + dY);
+//
+//                        vPressed = true;
+//                    }
+//                }
+//            }
 
             break;
 
         // LM finger up? => [RELEASE]
         case MotionEvent.ACTION_UP: case MotionEvent.ACTION_POINTER_UP:
-            if (tevent.isTLFinger()) {
-                if (vPressed) {
-                    Log.d(TAG, "------- Released ---------");
-                    Networker.get().sendAction(Strs.ACT_RELEASE_PRI);
-                    // Log
-                    Mologger.get().log(tevent.toString());
-
-                    vPressed = false;
-                }
-            }
+            // Update the ID
+            leftPointerID = tevent.getLeftFingerID();
+            startPCoords = tevent.getLeftPointerCoords();
+//            if (tevent.isTLFinger()) {
+//                if (vPressed) {
+//                    Log.d(TAG, "------- Released ---------");
+//                    Networker.get().sendAction(Strs.ACT_RELEASE_PRI);
+//                    // Log
+//                    Mologger.get().log(tevent.toString());
+//
+//                    vPressed = false;
+//                }
+//            }
 
             break;
         }
@@ -185,7 +464,7 @@ public class Actioner {
                 if (toVibrate) vibrate(100);
                 Networker.get().sendAction(Strs.ACT_CLICK);
                 // Log
-                Mologger.get().log(tevent + "--dt=" + dt);
+                Mologger.get().logAll(tevent + "--dt=" + dt);
             }
 
             break;

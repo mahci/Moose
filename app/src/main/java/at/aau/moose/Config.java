@@ -18,9 +18,7 @@ public class Config {
 
     // Thresholds ------------------------------------
     public static final int SWIPE_LCLICK_DY_MIN_MM = 5; // mm
-    public static final int SWIPE_LCLICK_DX_MAX_MM = 3; // mm
     public static float _swipeLClickDyMin; // px
-    public static float _swipeLClickDxMax; // px
 
     public static final int TAP_DUR = 300; // ms
 
@@ -42,13 +40,11 @@ public class Config {
                 TypedValue.COMPLEX_UNIT_MM, 1, dm);
 
         _swipeLClickDyMin = SWIPE_LCLICK_DY_MIN_MM * multip;
-        _swipeLClickDxMax = SWIPE_LCLICK_DX_MAX_MM * multip;
 
 //        _tapRegionH = TAP_REGION_H_MM * multip;
 
         Log.d(TAG, "Constants ============");
         Log.d(TAG, "Min dY = " + _swipeLClickDyMin + " px");
-        Log.d(TAG, "Max dX = " + _swipeLClickDxMax + " px");
         Log.d(TAG, "======================");
     }
 

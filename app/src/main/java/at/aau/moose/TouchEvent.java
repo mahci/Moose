@@ -18,6 +18,10 @@ public class TouchEvent {
     private MotionEvent event;
     private TouchState destate;
 
+    private final int INVALID_POINTER_ID = -1;
+    private int leftFingerID = INVALID_POINTER_ID;
+    private MotionEvent.PointerCoords leftPointerCoords = new MotionEvent.PointerCoords();
+
     private float leftFingerPosX, leftFingerPosY;
 
     /**
@@ -34,6 +38,75 @@ public class TouchEvent {
             leftFingerPosX = me.getX();
             leftFingerPosY = me.getY();
         }
+
+        // Set the ID of the left finger
+        int leftIndex;
+        switch (me.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+            leftFingerID = me.getPointerId(0); // The only finger
+            me.getPointerCoords(0, leftPointerCoords); // Fill the coords
+            break;
+        case MotionEvent.ACTION_POINTER_DOWN:
+            leftIndex = findLeftFingerIndex(me);
+            leftFingerID = me.getPointerId(leftIndex); // Set ID
+            me.getPointerCoords(leftIndex, leftPointerCoords); // Fill the coords
+            break;
+        case MotionEvent.ACTION_UP:
+            leftFingerID = INVALID_POINTER_ID; // No figner on the screen
+            leftPointerCoords.clear();
+            break;
+        case MotionEvent.ACTION_POINTER_UP:
+            leftIndex = findLeftFingerIndex(me);
+            leftFingerID = me.getPointerId(leftIndex); // Set ID
+            me.getPointerCoords(leftIndex, leftPointerCoords); // Fill the coords
+            break;
+        }
+    }
+
+    /**
+     * Find the left finger index when multiple fingers are on the screen
+     * @param me MotionEvent
+     * @return index of the left finger
+     */
+    private int findLeftFingerIndex(MotionEvent me) {
+        int leftFingerIndex = 0;
+        Log.d(TAG, "fLFI - num pointers= " + me.getPointerCount());
+        for (int pindex = 1; pindex < me.getPointerCount(); pindex++) {
+            if (me.getX(pindex) < me.getX(0)) // Lefter finger!
+                leftFingerIndex = pindex;
+            if (pindex == 2) Log.d(TAG, "fLFI - 3rd pointer X= " + me.getX(pindex));
+        }
+        Log.d(TAG, "fLFI - leftFingerIndex= " + leftFingerIndex);
+        return leftFingerIndex;
+    }
+
+    public void fillPointerCoords(int pointerID, MotionEvent.PointerCoords coords) {
+        if (coords != null && pointerID > -1) {
+            for (int i = 0; i < event.getPointerCount(); i++) {
+                Log.d(TAG, "[fPC] index= " + i + " - ID= " + event.getPointerId(i));
+            }
+            Log.d(TAG, "[fPC]-----------------------------");
+            Log.d(TAG, "[fPC] input ID= " + pointerID);
+            int pointerIndex = event.findPointerIndex(pointerID);
+            Log.d(TAG, "[fPC] pointerIndex= " + pointerIndex);
+            if (pointerIndex > -1) event.getPointerCoords(pointerIndex, coords);
+        }
+    }
+
+    /**
+     * Get the left finger ID
+     * @return Left finger ID
+     */
+    public int getLeftFingerID() {
+        return leftFingerID;
+    }
+
+    /**
+     * Get the PointerCoords for the left finger
+     * @return
+     */
+    public MotionEvent.PointerCoords getLeftPointerCoords() {
+        return leftPointerCoords;
     }
 
     public void setDestate(TouchState ts) {
@@ -46,6 +119,10 @@ public class TouchEvent {
      */
     public int getAction() {
         return event.getActionMasked();
+    }
+
+    public MotionEvent getEvent() {
+        return event;
     }
 
     /**
