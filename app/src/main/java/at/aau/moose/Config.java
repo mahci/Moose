@@ -11,16 +11,18 @@ public class Config {
     //=======================================================
 
     // Server
-//    public static final String SERVER_IP = "192.168.2.1";
-    public static final String SERVER_IP = "192.168.178.34";
+    public static final String SERVER_IP = "192.168.2.1";
+//    public static final String SERVER_IP = "192.168.178.34";
     public static final int SERVER_Port = 8000;
 //    public static final int TIMEOUT = 2 * 60 * 1000; // 2 min
 
     // Thresholds ------------------------------------
     public static final int SWIPE_LCLICK_DY_MIN_MM = 5; // mm
-    public static float _swipeLClickDyMin; // px
+    public static final int TAP_LCLICK_DIST_MAX_MM = 3; // mm
+    public static float SWIPE_LCLICK_DY_MIN; // px
+    public static float TAP_LCLICK_DIST_MAX; // px
 
-    public static final int TAP_DUR = 300; // ms
+    public static final int TAP_LCLICK_DUR_MAX = 300; // ms
 
     public static final int PALM_AREA_Y = 1080; // px (from the top)
 
@@ -39,12 +41,13 @@ public class Config {
         float multip = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_MM, 1, dm);
 
-        _swipeLClickDyMin = SWIPE_LCLICK_DY_MIN_MM * multip;
+        SWIPE_LCLICK_DY_MIN = SWIPE_LCLICK_DY_MIN_MM * multip;
+        TAP_LCLICK_DIST_MAX = TAP_LCLICK_DIST_MAX_MM * multip;
 
 //        _tapRegionH = TAP_REGION_H_MM * multip;
 
         Log.d(TAG, "Constants ============");
-        Log.d(TAG, "Min dY = " + _swipeLClickDyMin + " px");
+        Log.d(TAG, "Min dY = " + SWIPE_LCLICK_DY_MIN + " px");
         Log.d(TAG, "======================");
     }
 

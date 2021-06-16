@@ -94,12 +94,12 @@ public class Mologger {
                     "ALL.txt";
 
             // Open meta file and write the column headers
-            metaLogFile = new PrintWriter(new FileWriter(metaLogFilePath));
+            metaLogFile = new PrintWriter(new FileWriter(metaLogFilePath, true));
             metaLogFile.println(metaLogHeader());
             metaLogFile.flush();
 
             // Open all file and write the column headers
-            allLogFile = new PrintWriter(new FileWriter(allLogFilePath));
+            allLogFile = new PrintWriter(new FileWriter(allLogFilePath, true));
             allLogFile.println(allLogHeader());
             allLogFile.flush();
 
@@ -123,11 +123,12 @@ public class Mologger {
 
         try {
             if (allLogFile == null) { // Open only if not opened before
-                allLogFile = new PrintWriter(new FileWriter(allLogFilePath));
+                allLogFile = new PrintWriter(new FileWriter(allLogFilePath, true));
             }
-            allLogFile.println(Actioner.get()._technique + ";" + me);
+            allLogFile.println(Actioner.get()._technique.ordinal() + ";" + me);
             allLogFile.flush();
 
+            Log.d(TAG, "Logged in ALL!");
             return STATUS.SUCCESS;
 
         } catch (IOException | NullPointerException e) {
@@ -162,12 +163,12 @@ public class Mologger {
 
         try {
             if (metaLogFile == null) { // Open only if not opened before
-                metaLogFile = new PrintWriter(new FileWriter(metaLogFilePath));
+                metaLogFile = new PrintWriter(new FileWriter(metaLogFilePath, true));
             }
 
             // Create and write the log
             String logStr =
-                    Actioner.get()._technique + SEP +
+                    Actioner.get()._technique.ordinal() + SEP +
                     _phase + SEP +
                     _subblockNum + SEP +
                     _trialNum + SEP +

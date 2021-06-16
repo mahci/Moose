@@ -180,6 +180,18 @@ public class MainActivity extends Activity {
     }
 
 
+    private int getStatusBarHeight() {
+        int result = 0;
+        int resourceId = getResources().getIdentifier(
+                "status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            result = getResources().getDimensionPixelSize(resourceId);
+        }
+
+        return result;
+    }
+
+
     @Override
     public void onBackPressed() {
         // Intentionally empty to disable the BACK button
@@ -220,14 +232,15 @@ public class MainActivity extends Activity {
          */
         @Override
         public boolean onInterceptTouchEvent(MotionEvent ev) {
-            // TODO: Only redraw if on status bar
-            // Redraw the layout
-            getWindow().setFlags(
-                    WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                    WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            if (ev.getY() <= getStatusBarHeight()) {
+                // Redraw the layout
+                getWindow().setFlags(
+                        WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                        WindowManager.LayoutParams.FLAG_FULLSCREEN);
 //            recreate();
 //            finish();
-            startActivity(getIntent());
+                startActivity(getIntent());
+            }
 
             return false;
         }
@@ -237,7 +250,19 @@ public class MainActivity extends Activity {
         public boolean onTouchEvent(MotionEvent event) {
             // Publish the event (mostly for Actioner)
 //            publishEvent(event);
-            Actioner.get().processMotion(event);
+            Actioner.get().processEvent(event);
+//            if (event.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN) {
+//                Log.d(TAG, "Action Index= " + event.getActionIndex());
+//                Log.d(TAG, "Action ID= " + event.getPointerId(event.getActionIndex()));
+//            }
+
+//            if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
+//                for (int pix = 0; pix < event.getPointerCount(); pix++) {
+//                    Log.d(TAG, "dY (" + pix + ")");
+//                    Log.d(TAG, "-------------------------");
+//                }
+//
+//            }
 
             // Log the action
             Mologger.get().logAll(event);
@@ -245,4 +270,5 @@ public class MainActivity extends Activity {
             return super.onTouchEvent(event);
         }
     }
+
 }

@@ -7,6 +7,12 @@ import android.view.MotionEvent;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 
+import static android.view.MotionEvent.INVALID_POINTER_ID;
+import  android.view.MotionEvent.PointerCoords;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Singleton class for analyzing all actions performed on the screen
  */
@@ -25,23 +31,24 @@ public class Actioner {
     public TECHNIQUE _technique;
     private boolean toVibrate = false;
 
-
+    MotionEvent.PointerCoords newLeftPCoords = new MotionEvent.PointerCoords();
 
     // Position of the leftmost finger
     private Foint lmFingerDownPos = new Foint();
     private Foint tlFingerPos = new Foint();
-    private final int INVALID_POINTER_ID = -1;
     private int leftPointerID = INVALID_POINTER_ID;
     private int upPointerIndex;
-    private MotionEvent.PointerCoords startPCoords = new MotionEvent.PointerCoords();
-    private MotionEvent.PointerCoords endPCoords = new MotionEvent.PointerCoords();
+    private PointerCoords startPCoords = new PointerCoords();
+    private PointerCoords endPCoords = new PointerCoords();
     private long actionStartTime; // Both for time keeping and checking if action is started
-    private long pressDuration;
-    private long duration;
+//    private long pressDuration;
+//    private long duration;
     private float dX, dY;
     private int nExtraFingers;
-    private MotionEvent.PointerCoords extra1PCoords = new MotionEvent.PointerCoords();
-    private MotionEvent.PointerCoords extra2PCoords = new MotionEvent.PointerCoords();
+    private PointerCoords extra1PCoords = new PointerCoords();
+    private PointerCoords extra2PCoords = new PointerCoords();
+
+    private List<Integer> sortedIDList = new ArrayList<>();
 
     // Is virtually pressed?
     private boolean vPressed = false;
@@ -113,7 +120,7 @@ public class Actioner {
      * Process the given MotionEvent
      * @param me MotionEvent
      */
-    public void processMotion(MotionEvent me) {
+    public void processEvent(MotionEvent me) {
         //--- Process the TOUCH EVENT based on the gesture
         if (_technique != null) {
             switch (_technique) {
@@ -132,103 +139,112 @@ public class Actioner {
      * @param me MotionEvent
      */
     public void swipeLClick(MotionEvent me) {
-        int leftIndex;
+        int leftIndex, actionIndex;
+        long actionDuration;
+        float leftDY;
+
         switch (me.getActionMasked()) {
             // Only one finger is on the screen
         case MotionEvent.ACTION_DOWN:
-            leftIndex = 0;
-            leftPointerID = me.getPointerId(leftIndex); // The only finger
-            me.getPointerCoords(0, startPCoords); // Fill the coords
+            leftIndex = 0; // The only finger
+            leftPointerID = me.getPointerId(leftIndex); // ID
+            me.getPointerCoords(leftIndex, startPCoords); // Fill the coords
             break;
             // More fingers are added
         case MotionEvent.ACTION_POINTER_DOWN:
-            leftIndex = findLeftPointerIndex(me); // Find the new left pointer
-            leftPointerID = me.getPointerId(leftIndex); // Set ID
-            me.getPointerCoords(leftIndex, startPCoords); // Fill the coords
-            break;
-            // Last finger is up
-        case MotionEvent.ACTION_UP:
-            // Check if the active finger has gone up
-            upPointerIndex = me.getActionIndex();
-            if (vPressed && me.getPointerId(upPointerIndex) == leftPointerID) { // Release
-                Log.d(TAG, "------- Released ---------");
-                vPressed = false;
-                duration = System.currentTimeMillis() - actionStartTime;
-                mssgPublisher.onNext(Strs.ACT_RELEASE_PRI);
-
-                // log the release
-                Mologger.get().logMeta(
-                        startPCoords, endPCoords,
-                        pressDuration, duration,
-                        dX, dY,
-                        nExtraFingers, extra1PCoords, extra2PCoords);
+            actionIndex = me.getActionIndex(); // Which pointer is down?
+            // If new finger on the left
+            if (isLeftMost(me, actionIndex)) {
+                leftPointerID =  me.getPointerId(actionIndex); // Set ID
+                me.getPointerCoords(actionIndex, startPCoords); // Update the coords
             }
-
-            // Reset all the values
-            leftPointerID = INVALID_POINTER_ID; // No figner on the screen
-            startPCoords.clear();
-            actionStartTime = 0;
             break;
-            // Second, third, ... fingers are up
-        case MotionEvent.ACTION_POINTER_UP:
-            // Check if the active finger has gone up
-            upPointerIndex = me.getActionIndex();
-            if (vPressed && me.getPointerId(upPointerIndex) == leftPointerID) { // Release
-                Log.d(TAG, "------- Released ---------");
-                vPressed = false;
-                duration = System.currentTimeMillis() - actionStartTime;
-                mssgPublisher.onNext(Strs.ACT_RELEASE_PRI); // Send the action
-
-                // log the release
-                Mologger.get().logMeta(
-                        startPCoords, endPCoords,
-                        pressDuration, duration,
-                        dX, dY,
-                        nExtraFingers, extra1PCoords, extra2PCoords);
-            }
-
-            // Recalculate the left finger
-            leftIndex = findLeftPointerIndex(me);
-            leftPointerID = me.getPointerId(leftIndex); // Set ID
-            me.getPointerCoords(leftIndex, startPCoords); // Fill the coords
-            break;
-            // Main process
+            // Movement...
         case MotionEvent.ACTION_MOVE:
-            if (startPCoords.x != 0) { // There is coords
-                // Set the start of the movement time
-                if (actionStartTime == 0) actionStartTime = System.currentTimeMillis();
+            if (leftPointerID != INVALID_POINTER_ID) { // We have a leftmost finger
+//                printPointers(me); // TEST
+                leftIndex = me.findPointerIndex(leftPointerID);
+                if (leftIndex != -1) { // ID found
 
-                MotionEvent.PointerCoords newLeftPCoords = new MotionEvent.PointerCoords();
-                int activePIndex = me.findPointerIndex(leftPointerID);
-                if (activePIndex > -1) {
-                    me.getPointerCoords(activePIndex, newLeftPCoords);
-                }
-//                Log.d(TAG, "leftPointerID= " + leftPointerID);
-//
-//                Log.d(TAG, "activePIndex= " + activePIndex);
-//                Log.d(TAG, "newLeftPCoords= " + newLeftPCoords.y);
-                // Check the movement condition
-                dY = newLeftPCoords.y - startPCoords.y;
-//                Log.d(TAG, "dY= " + dY);
-                if (dY > Config._swipeLClickDyMin) {
+                    // Always calculated the amount of movement of the leftmost finger
+                    leftDY = me.getY(leftIndex) - startPCoords.y;
 
-                    if (!vPressed) { // Only press once
-                        vPressed = true; // Flag
-                        Log.d(TAG, "------- Pressed ---------");
-                        mssgPublisher.onNext(Strs.ACT_PRESS_PRI); // Send the action
+                    if (!vPressed) { // NOT pressed
+                        // Set the start of the movement time
+                        if (actionStartTime == 0) actionStartTime = System.currentTimeMillis();
+
+                        // Did it move enough?
+                        if (leftDY > Config.SWIPE_LCLICK_DY_MIN) { // SWIPED!
+                            vPressed = true; // Flag
+                            Log.d(TAG, "--------------- Pressed ---------------");
+                            mssgPublisher.onNext(Strs.ACT_PRESS_PRI); // Send the action
+                        }
                     }
 
-                    pressDuration = System.currentTimeMillis() - actionStartTime; // Press dur.
-                    endPCoords.copyFrom(newLeftPCoords); // Action end coords
-                    dX = newLeftPCoords.x - startPCoords.x; // dX
-                    nExtraFingers = me.getPointerCount() - 1;
-                    if (nExtraFingers > 0) me.getPointerCoords(1, extra1PCoords);
-                    if (nExtraFingers > 1) me.getPointerCoords(2, extra2PCoords);
+                } else { // leftmost ID is no longer on the screen => find the new one
+                    // Recalculate the left finger (we know last active leftmost is up now)
+                    leftIndex = findLeftPointerIndex(me);
+                    leftPointerID = me.getPointerId(leftIndex); // Set ID
+                    me.getPointerCoords(leftIndex, startPCoords); // Fill the coords
                 }
             }
+
+            break;
+        // Ond of the pointers is up
+        case MotionEvent.ACTION_POINTER_UP:
+            // Check if the active finger has gone up
+            actionIndex = me.getActionIndex();
+            if (me.getPointerId(actionIndex) == leftPointerID) { // Leftmost finger is UP
+
+                if (vPressed) { // Alreay pressed
+                    Log.d(TAG, "--------------- Released ---------------");
+                    mssgPublisher.onNext(Strs.ACT_RELEASE_PRI); // Send the action
+
+                    // Action duration
+                    actionDuration = System.currentTimeMillis() - actionStartTime;
+
+                    // Reset everything
+                    vPressed = false;
+                    actionStartTime = 0;
+
+                    // TODO log the release
+//                    Mologger.get().logMeta(
+//                            startPCoords, endPCoords,
+//                            pressDuration, duration,
+//                            dX, dY,
+//                            nExtraFingers, extra1PCoords, extra2PCoords);
+                }
+
+
+            }
+        break;
+            // Last finger is up
+        case MotionEvent.ACTION_UP:
+            if (vPressed) { // Alreay pressed?
+                Log.d(TAG, "--------------- Released ---------------");
+                mssgPublisher.onNext(Strs.ACT_RELEASE_PRI); // Send the action
+
+                // Action duration
+                actionDuration = System.currentTimeMillis() - actionStartTime;
+
+                // Reset everything
+                vPressed = false;
+                actionStartTime = 0;
+                leftPointerID = INVALID_POINTER_ID;
+
+                // TODO log the release
+//                    Mologger.get().logMeta(
+//                            startPCoords, endPCoords,
+//                            pressDuration, duration,
+//                            dX, dY,
+//                            nExtraFingers, extra1PCoords, extra2PCoords);
+            }
+
+            // No need to Recalculate the left finger...
             break;
 
         }
+
     }
 
     /**
@@ -236,102 +252,150 @@ public class Actioner {
      * @param me MotionEvent
      */
     public void tapLClick(MotionEvent me) {
-        int leftIndex;
+        int leftIndex, actionIndex;
         switch (me.getActionMasked()) {
         // Only one finger is on the screen
         case MotionEvent.ACTION_DOWN:
-            leftIndex = 0;
-            leftPointerID = me.getPointerId(leftIndex); // The only finger
-            me.getPointerCoords(0, startPCoords); // Fill the coords
-
-            // Start the TAP action
-            actionStartTime = System.currentTimeMillis();
+            leftIndex = 0; // The only finger
+            leftPointerID = me.getPointerId(leftIndex); // ID
+            me.getPointerCoords(leftIndex, startPCoords); // Fill the coords
+            actionStartTime = System.currentTimeMillis(); // Set the start TAP time
             break;
         // More fingers are added
         case MotionEvent.ACTION_POINTER_DOWN:
-            leftIndex = findLeftPointerIndex(me); // Find the new left pointer
-            leftPointerID = me.getPointerId(leftIndex); // Set ID
-            me.getPointerCoords(leftIndex, startPCoords); // Fill the coords
-
-            // Start the TAP action
-            actionStartTime = System.currentTimeMillis();
-            break;
-        // Last finger is up
-        case MotionEvent.ACTION_UP:
-            // Check if the active finger has gone up
-            upPointerIndex = me.getActionIndex();
-            if (me.getPointerId(upPointerIndex) == leftPointerID) { // TAP is done?
-                duration = System.currentTimeMillis() - actionStartTime;
-                double dist = Utils.distance(startPCoords, endPCoords);
-                if (dist <= Config._swipeLClickDyMin && duration < Config.TAP_DUR) {
-                    Log.d(TAG, "------- Click ---------");
-                    mssgPublisher.onNext(Strs.ACT_CLICK);
-
-                    // log the release
-                    dX = endPCoords.x - startPCoords.x;
-                    dY = endPCoords.y - startPCoords.y;
-                    Mologger.get().logMeta(
-                            startPCoords, endPCoords,
-                            pressDuration, duration,
-                            dX, dY,
-                            nExtraFingers, extra1PCoords, extra2PCoords);
-                }
+            actionIndex = me.getActionIndex(); // Which pointer is down?
+            // If new finger on the left
+            if (isLeftMost(me, actionIndex)) {
+                leftPointerID =  me.getPointerId(actionIndex); // Set ID
+                actionStartTime = System.currentTimeMillis(); // Set the start TAP time
+                me.getPointerCoords(actionIndex, startPCoords); // Update the coords
             }
-
-            // Reset all the values
-            leftPointerID = INVALID_POINTER_ID; // No figner on the screen
-            startPCoords.clear();
-            actionStartTime = 0;
             break;
         // Second, third, ... fingers are up
         case MotionEvent.ACTION_POINTER_UP:
             // Check if the active finger has gone up
-            upPointerIndex = me.getActionIndex();
-            if (me.getPointerId(upPointerIndex) == leftPointerID) { // TAP is done?
-                duration = System.currentTimeMillis() - actionStartTime;
-                double dist = Utils.distance(startPCoords, endPCoords);
-                if (dist <= Config._swipeLClickDyMin && duration < Config.TAP_DUR) {
-                    Log.d(TAG, "------- Click ---------");
-                    mssgPublisher.onNext(Strs.ACT_CLICK);
+            actionIndex = me.getActionIndex();
+            if (me.getPointerId(actionIndex) == leftPointerID) { // Leftmost finger is UP
+                endPCoords = getPointerCoords(me, actionIndex);
+                double dist = distance(startPCoords, endPCoords);
+                long duration = System.currentTimeMillis() - actionStartTime;
+
+                Log.d(TAG, "duration = " + duration +
+                        " | max = " + Config.TAP_LCLICK_DUR_MAX);
+                Log.d(TAG, String.format("distance = %.2f | MAX = %.2f",
+                        dist, Config.TAP_LCLICK_DIST_MAX));
+
+                if (dist <= Config.TAP_LCLICK_DIST_MAX && duration < Config.TAP_LCLICK_DUR_MAX) {
+                    Log.d(TAG, "--------------- Click ---------------");
+                    mssgPublisher.onNext(Strs.ACT_CLICK); // Publilsh the event
 
                     // log the release
                     dX = endPCoords.x - startPCoords.x;
                     dY = endPCoords.y - startPCoords.y;
-                    Mologger.get().logMeta(
-                            startPCoords, endPCoords,
-                            pressDuration, duration,
-                            dX, dY,
-                            nExtraFingers, extra1PCoords, extra2PCoords);
+//                    Mologger.get().logMeta(
+//                            startPCoords, endPCoords,
+//                            pressDuration, duration,
+//                            dX, dY,
+//                            nExtraFingers, extra1PCoords, extra2PCoords);
+                }
+
+                // Reset the leftmost ID
+                leftPointerID = INVALID_POINTER_ID;
+            }
+            break;
+        // Last finger is up
+        case MotionEvent.ACTION_UP:
+            // Was it a single-finger TAP?
+            if (leftPointerID == 0) {
+                actionIndex = me.findPointerIndex(leftPointerID);
+                endPCoords = getPointerCoords(me, actionIndex);
+                double dist = distance(startPCoords, endPCoords);
+                long duration = System.currentTimeMillis() - actionStartTime;
+
+                Log.d(TAG, "duration = " + duration +
+                        " | max = " + Config.TAP_LCLICK_DUR_MAX);
+                Log.d(TAG, String.format("distance = %.2f | MAX = %.2f",
+                        dist, Config.TAP_LCLICK_DIST_MAX));
+
+                if (dist <= Config.TAP_LCLICK_DIST_MAX && duration <= Config.TAP_LCLICK_DUR_MAX) {
+                    Log.d(TAG, "------- Click ---------");
+                    mssgPublisher.onNext(Strs.ACT_CLICK); // Publilsh the event
+
+                    // log the release
+                    dX = endPCoords.x - startPCoords.x;
+                    dY = endPCoords.y - startPCoords.y;
+//                    Mologger.get().logMeta(
+//                            startPCoords, endPCoords,
+//                            pressDuration, duration,
+//                            dX, dY,
+//                            nExtraFingers, extra1PCoords, extra2PCoords);
+
                 }
             }
 
-            // Recalculate the left finger
-            leftIndex = findLeftPointerIndex(me);
-            leftPointerID = me.getPointerId(leftIndex); // Set ID
-            me.getPointerCoords(leftIndex, startPCoords); // Fill the coords
-            break;
-        // Main process
-        case MotionEvent.ACTION_MOVE:
-            if (startPCoords.x != 0) { // There is coords
-                int activePIndex = me.findPointerIndex(leftPointerID);
-                if (activePIndex > -1) {
-                    me.getPointerCoords(activePIndex, endPCoords);
-                }
-            }
+            // Reset the leftmost ID
+            leftPointerID = INVALID_POINTER_ID;
+
             break;
 
         }
     }
 
-    public int findLeftPointerIndex(MotionEvent me) {
-        int leftPointerIndex = 0;
-
-        for (int pindex = 1; pindex < me.getPointerCount(); pindex++) {
-            if (me.getX(pindex) < me.getX(0)) // Lefter finger!
-                leftPointerIndex = pindex;
+    public boolean isLeftMost(MotionEvent me, int pointerIndex) {
+        boolean result = true;
+        for (int pix = 0; pix < me.getPointerCount(); pix++) {
+            if (me.getX(pix) < me.getX(pointerIndex)) result = false;
         }
 
-        return leftPointerIndex;
+        return result;
+    }
+
+    /**
+     * Find the index of the leftmost pointer
+     * @param me MotionEvent
+     * @return Index of the leftmost pointer
+     */
+    public int findLeftPointerIndex(MotionEvent me) {
+        if (me.getPointerCount() == 0) return -1;
+        else {
+            int leftIndex = 0;
+            Log.d(TAG, "pointerCount = " + me.getPointerCount());
+            for (int pindex = 1; pindex < me.getPointerCount(); pindex++) {
+                Log.d(TAG, "pindex = " + pindex);
+                if (me.getX(pindex) < me.getX(leftIndex)) leftIndex = pindex;
+            }
+
+            return leftIndex;
+        }
+    }
+
+    /**
+     * Find the ID of the leftmost pointer
+     * @param me MotionEvent
+     * @return ID of the leftmost pointer (INVALID_POINTER_ID if no pointer on the screen)
+     */
+    public int findLeftPointID(MotionEvent me) {
+        int leftIndex = findLeftPointerIndex(me);
+        if (leftIndex == -1) return INVALID_POINTER_ID;
+        else return me.getPointerId(leftIndex);
+    }
+
+    /**
+     * Add a pointer ID to the list + sort the list based on the x
+     * @param pointerID int ID
+     */
+    private void addIDToList(int pointerID) {
+
+    }
+    /**
+     * Print the indexes and IDs of all the pointers
+     * @param me MotionEvent
+     */
+    private void printPointers(MotionEvent me) {
+        for (int pix = 0; pix < me.getPointerCount(); pix++) {
+            Log.d(TAG, "Index = " + pix + " | " + "ID = " + me.getPointerId(pix));
+        }
+        Log.d(TAG, "------------------------------");
     }
 
     /**
@@ -374,7 +438,7 @@ public class Actioner {
                 // Check the movement condition
                 float dY = newLeftPCoords.y - startPCoords.y;
                 Log.d(TAG, "dY= " + dY);
-                if (dY > Config._swipeLClickDyMin) {
+                if (dY > Config.SWIPE_LCLICK_DY_MIN) {
                     Log.d(TAG, "------- Pressed ---------");
                 }
             }
@@ -448,7 +512,7 @@ public class Actioner {
             if (tlFingerPos.hasCoord()) { // Only check if prev. finger down
                 double mDist = tevent.getTopLeftFingerPos().dist(tlFingerPos);
                 Log.d(TAG, "mDist = " + mDist);
-                if (mDist >= Config._swipeLClickDyMin) {
+                if (mDist >= Config.SWIPE_LCLICK_DY_MIN) {
                     actionCancelled = true;
                 }
             }
@@ -459,7 +523,7 @@ public class Actioner {
         case MotionEvent.ACTION_UP: case MotionEvent.ACTION_POINTER_UP:
             long time = System.currentTimeMillis();
             long dt = time - actionStartTime;
-            if (!actionCancelled && dt < Config.TAP_DUR) { // TAP recognized!
+            if (!actionCancelled && dt < Config.TAP_LCLICK_DUR_MAX) { // TAP recognized!
                 Log.d(TAG, "------- TAP! ---------");
                 if (toVibrate) vibrate(100);
                 Networker.get().sendAction(Strs.ACT_CLICK);
@@ -498,4 +562,32 @@ public class Actioner {
         }
 
     }
+
+    // ===============================================================================
+    //region [Tools]
+
+    /**
+     * Calculate the Euclidean distance between two coords
+     * @param pc1 PointerCoords 1
+     * @param pc2 PointerCoords 2
+     * @return Double distance
+     */
+    public double distance(MotionEvent.PointerCoords pc1,
+                                  MotionEvent.PointerCoords pc2) {
+        return Math.sqrt(Math.pow(pc1.x - pc2.x, 2) + Math.pow(pc1.y - pc2.y, 2));
+    }
+
+    /**
+     * Truly GET the PointerCoords!
+     * @param me MotionEvent
+     * @param pointerIndex int pointer index
+     * @return PointerCoords
+     */
+    public PointerCoords getPointerCoords(MotionEvent me, int pointerIndex) {
+        PointerCoords result = new PointerCoords();
+        me.getPointerCoords(pointerIndex, result);
+        return result;
+    }
+
+    //endregion
 }
