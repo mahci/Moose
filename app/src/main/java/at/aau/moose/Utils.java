@@ -45,5 +45,16 @@ public class Utils {
         return format.format(Calendar.getInstance().getTime());
     }
 
+    /**
+     * Get the input with #.###
+     * @param input double
+     * @return String
+     */
+    public static String double3Dec(double input) {
+        return String.format("%.3f", input);
+    }
+
+
+
 
 }

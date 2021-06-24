@@ -156,15 +156,6 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * The experiment begins
-     */
-    public static void beginExperiment() {
-        // Save the state at this time
-        fingersState.setTime(Calendar.getInstance().getTimeInMillis());
-//        Actioner.get().setInitState(fingersState);
-    }
-
-    /**
      * Return a TouchEvent with the MotionEvent
      * @param me MotionEvent
      */

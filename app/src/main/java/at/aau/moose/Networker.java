@@ -1,7 +1,6 @@
 package at.aau.moose;
 
 import android.annotation.SuppressLint;
-import android.app.Notification;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -91,71 +90,35 @@ public class Networker {
      */
     private void processInput(String inStr) {
         Log.d(TAG, "Process: " + inStr);
-        // Command must be in the format mssg_param
+        // Command must be in the format <mssg-param>
         // Message and param
         String mssg = Utils.splitStr(inStr)[0];
         String param = Utils.splitStr(inStr)[1];
 
         // Command
         switch (mssg) {
-        case Strs.MSSG_TECHNIQUE:
+        case Strs.MSSG_PID: // Start of a participant
+            Mologger.get().loginParticipant(param);
+            break;
+        case Strs.MSSG_TECHNIQUE: // Set the technique
             Actioner.get().setTechnique(param);
             break;
-        case Strs.MSSG_PID:
-            // Participant's ID
-//            Mologger.get().setupParticipantLog(param);
-            Mologger.get().logParticipant(param);
+        case Strs.MSSG_BEG_PHS: // Start of the phase
+            int phase = Integer.parseInt(param);
+            Mologger.get()._phase = phase;
+            // Don't log during the Showcase
+            if (phase == 0) Mologger.get().isLogging = false;
+            else Mologger.get().isLogging  = true;
             break;
-        case Strs.MSSG_BEG_PHS:
-            // Log the start of the phase
-//            Mologger.get().logPhaseStart(param);
-            Mologger.get()._phase = param;
+        case Strs.MSSG_SUBBLOCK: // Subblock number
+            Mologger.get()._subblockNum = Integer.parseInt(param);
             break;
-        case Strs.MSSG_SBLK:
-            int sblkNum = Integer.parseInt(param);
-            Mologger.get()._subblockNum = sblkNum;
+        case Strs.MSSG_TRIAL: // Trial number
+            Mologger.get()._trialNum = Integer.parseInt(param);
             break;
-        case Strs.MSSG_TRL:
-            int trlNum = Integer.parseInt(param);
-            Mologger.get()._trialNum = trlNum;
-            break;
-        case Strs.MSSG_BEG_EXP:
-            // Tell the MainActivity to begin experimente
-            MainActivity.beginExperiment();
-
-            // Experiment description
-            Mologger.get().setupExperimentLog(param);
-            Mologger.get().setLogState(true);
-            break;
-
-        case Strs.MSSG_BEG_BLK:
-            // Get the experiment number
-            int blkNum = Integer.parseInt(param);
-//            Mologger.get().setupBlockLog(blkNum);
-//            Mologger.get().logBlockStart(blkNum);
-
-            break;
-
-        case Strs.MSSG_END_TRL:
-            Mologger.get().finishTrialLog();
-            break;
-
-        case Strs.MSSG_END_BLK:
-            Mologger.get().finishBlockLog();
-            break;
-
         case Strs.MSSG_END_EXP:
-            Mologger.get().setLogState(false);
+            Mologger.get().isLogging = false;
             break;
-
-        case Strs.MSSG_BEG_LOG:
-            Actioner.get().isTrialRunning = true;
-            break;
-
-        case Strs.MSSG_END_LOG:
-            Actioner.get().isTrialRunning = false;
-            break;
-
         case Strs.NET_DISCONNECT:
             connect();
             break;
