@@ -18,11 +18,11 @@ public class Config {
 
     // Thresholds ------------------------------------
     public static final int SWIPE_LCLICK_DY_MIN_MM = 3; // mm
-    public static final int TAP_LCLICK_DIST_MAX_MM = 3; // mm
+    public static final int TAP_LCLICK_DIST_MAX_MM = 1; // mm
     public static float SWIPE_LCLICK_DY_MIN; // px
     public static float TAP_LCLICK_DIST_MAX; // px
 
-    public static final int TAP_LCLICK_TIMEOUT = 300; // ms
+    public static final int TAP_LCLICK_TIMEOUT = 200; // ms
 
     public static final int PALM_AREA_Y = 1080; // px (from the top)
 

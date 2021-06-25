@@ -1,5 +1,6 @@
 package at.aau.moose;
 
+import android.os.CountDownTimer;
 import android.os.Vibrator;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -66,6 +67,9 @@ public class Actioner {
 
     // State
     private STATE _state;
+
+    // Timer for the TAP
+    private CountDownTimer tapTimer;
 
     // ===============================================================================
 
@@ -233,6 +237,8 @@ public class Actioner {
      */
     public void tapLClick(MotionEvent me) {
         int leftIndex, actionIndex;
+        float leftDY;
+
         switch (me.getActionMasked()) {
         // Only one finger is on the screen
         case MotionEvent.ACTION_DOWN:
@@ -240,6 +246,13 @@ public class Actioner {
             leftPointerID = me.getPointerId(leftIndex); // ID
             me.getPointerCoords(leftIndex, startPCoords); // Fill the coords
             actionStartTime = System.currentTimeMillis(); // Set the start TAP time
+
+            // Pressed
+            vPressed = true; // Flag
+            mssgPublisher.onNext(Strs.ACT_PRESS_PRI); // Send the action
+            Log.d(TAG, "--------------- Pressed ---------------");
+            startTapTimer();
+
             break;
         // More fingers are added
         case MotionEvent.ACTION_POINTER_DOWN:
@@ -249,7 +262,38 @@ public class Actioner {
                 leftPointerID =  me.getPointerId(actionIndex); // Set ID
                 actionStartTime = System.currentTimeMillis(); // Set the start TAP time
                 me.getPointerCoords(actionIndex, startPCoords); // Update the coords
+
+                // Pressed
+                vPressed = true; // Flag
+                mssgPublisher.onNext(Strs.ACT_PRESS_PRI); // Send the action
+                Log.d(TAG, "--------------- Pressed ---------------");
+                startTapTimer();
+
             }
+            break;
+        case MotionEvent.ACTION_MOVE:
+            if (leftPointerID != INVALID_POINTER_ID) { // We have a leftmost finger
+//                printPointers(me); // TEST
+                leftIndex = me.findPointerIndex(leftPointerID);
+                if (leftIndex != -1) { // ID found
+
+                    // Always calculated the amount of movement of the leftmost finger
+                    leftDY = me.getY(leftIndex) - startPCoords.y;
+
+                    Log.d(TAG, String.format("getY = %.2f | startY = %.2f",
+                            me.getY(leftIndex), startPCoords.y));
+                    Log.d(TAG, String.format("dY = %.2f | MIN = %.2f",
+                            leftDY, Config.SWIPE_LCLICK_DY_MIN));
+                    // Did it move too much?
+                    if (leftDY >= Config.TAP_LCLICK_DIST_MAX) { // SWIPED!
+                        vPressed = false; // Flag
+                        Log.d(TAG, "--------------- Cancelled ---------------");
+                        mssgPublisher.onNext(Strs.ACT_CANCEL); // Send the action
+                    }
+
+                }
+            }
+
             break;
         // Second, third, ... fingers are up
         case MotionEvent.ACTION_POINTER_UP:
@@ -265,25 +309,28 @@ public class Actioner {
                 Log.d(TAG, String.format("distance = %.2f | MAX = %.2f",
                         dist, Config.TAP_LCLICK_DIST_MAX));
 
-                if (dist <= Config.TAP_LCLICK_DIST_MAX && duration <= Config.TAP_LCLICK_TIMEOUT) {
-                    Log.d(TAG, "--------------- Click ---------------");
-                    mssgPublisher.onNext(Strs.ACT_CLICK); // Publilsh the event
+                if (vPressed) {
+                    if (dist <= Config.TAP_LCLICK_DIST_MAX) {
+                        Log.d(TAG, "--------------- Released ---------------");
+                        mssgPublisher.onNext(Strs.ACT_RELEASE_PRI); // Publilsh the event
 
-                    // Movement
-                    dX = endPCoords.x - startPCoords.x;
-                    dY = endPCoords.y - startPCoords.y;
+                        // Movement
+                        dX = endPCoords.x - startPCoords.x;
+                        dY = endPCoords.y - startPCoords.y;
 
-                    actionID++; // Assign an id to this action
+                        actionID++; // Assign an id to this action
 
-                    // Log
-                    Mologger.get().logMeta(actionID,
-                            startPCoords, endPCoords,
-                            dX, dY,
-                            duration);
+                        // Log
+                        Mologger.get().logMeta(actionID,
+                                startPCoords, endPCoords,
+                                dX, dY,
+                                duration);
+                    }
                 }
 
-                // Reset the leftmost ID
+                // Reset everything
                 leftPointerID = INVALID_POINTER_ID;
+                vPressed = false;
             }
             break;
         // Last finger is up
@@ -300,31 +347,50 @@ public class Actioner {
                 Log.d(TAG, String.format("distance = %.2f | MAX = %.2f",
                         dist, Config.TAP_LCLICK_DIST_MAX));
 
-                if (dist <= Config.TAP_LCLICK_DIST_MAX && duration <= Config.TAP_LCLICK_TIMEOUT) {
-                    Log.d(TAG, "------- Click ---------");
-                    mssgPublisher.onNext(Strs.ACT_CLICK); // Publilsh the event
+                if (vPressed) {
+                    if (dist <= Config.TAP_LCLICK_DIST_MAX && duration <= Config.TAP_LCLICK_TIMEOUT) {
+                        Log.d(TAG, "--------------- Released ---------------");
+                        mssgPublisher.onNext(Strs.ACT_RELEASE_PRI); // Publilsh the event
 
-                    // Movement
-                    dX = endPCoords.x - startPCoords.x;
-                    dY = endPCoords.y - startPCoords.y;
+                        // Movement
+                        dX = endPCoords.x - startPCoords.x;
+                        dY = endPCoords.y - startPCoords.y;
 
-                    actionID++; // Assign an id to this action
+                        actionID++; // Assign an id to this action
 
-                    // Log
-                    Mologger.get().logMeta(actionID,
-                            startPCoords, endPCoords,
-                            dX, dY,
-                            duration);
+                        // Log
+                        Mologger.get().logMeta(actionID,
+                                startPCoords, endPCoords,
+                                dX, dY,
+                                duration);
 
+                    }
                 }
             }
 
-            // Reset the leftmost ID
+            // Reset everything
             leftPointerID = INVALID_POINTER_ID;
+            vPressed = false;
 
             break;
 
         }
+    }
+
+    private void startTapTimer() {
+        tapTimer = new CountDownTimer(Config.TAP_LCLICK_TIMEOUT, 100) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+
+            }
+
+            @Override
+            public void onFinish() {
+                Log.d(TAG, "--------------- Cancelled ---------------");
+                mssgPublisher.onNext(Strs.ACT_CANCEL); // Send a CANCEL message
+                vPressed = false;
+            }
+        }.start();
     }
 
     /**

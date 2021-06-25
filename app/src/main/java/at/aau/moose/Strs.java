@@ -23,6 +23,7 @@ public class Strs {
     public static final String ACT_CLICK        = "CLICK";
     public static final String ACT_PRESS_PRI    = "PRESS_PRI";
     public static final String ACT_RELEASE_PRI  = "RELEASE_PRI";
+    public static final String ACT_CANCEL       = "CANCEL";
     public static final String ACT_PRESS_SEC    = "PRESS_SEC";
     public static final String ACT_RELEASE_SEC  = "RELEASE_SEC";
 
