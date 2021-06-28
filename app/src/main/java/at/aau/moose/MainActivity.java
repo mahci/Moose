@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Vibrator;
@@ -15,12 +17,14 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.SoundEffectConstants;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
 import java.util.Calendar;
 
+import at.aau.sound.SoundManager;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 
 public class MainActivity extends Activity {
@@ -35,6 +39,9 @@ public class MainActivity extends Activity {
     // Code for overlay permission intent
     private static final int OVERLAY_PERMISSION_CODE = 2;
 
+    // Unique id for every MotionEvent
+    private int meId = -1;
+
     private static TouchState fingersState = new TouchState();
 
     private static DevicePolicyManager mDPM;
@@ -45,6 +52,12 @@ public class MainActivity extends Activity {
     private boolean askedForOverlayPermission;
 
     private boolean initialized;
+
+    private MediaPlayer mediaPlayer;
+
+    private AudioManager audioManager;
+
+    private SoundManager mSoundManager;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -62,6 +75,8 @@ public class MainActivity extends Activity {
 
         // Set the content of the activity
 //        setContentView(R.layout.activity_main);
+
+        audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
     }
 
     /**
@@ -111,6 +126,12 @@ public class MainActivity extends Activity {
         // [TEST]
         Actioner.get()._technique = Actioner.TECHNIQUE.SWIPE;
         Actioner.get().vibrator = (Vibrator)getSystemService(VIBRATOR_SERVICE);
+
+        int maxSimultaneousStreams = 3;
+        mSoundManager = new SoundManager(this, maxSimultaneousStreams);
+        mSoundManager.start();
+        mSoundManager.load(R.raw.press2);
+        mSoundManager.load(R.raw.release2);
     }
 
     /**
@@ -156,21 +177,9 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * Return a TouchEvent with the MotionEvent
-     * @param me MotionEvent
+     * Get the height of status bar
+     * @return int (px)
      */
-    private void publishEvent(MotionEvent me) {
-//        setFingers(me); // Set the state of fingers
-        TouchEvent te = new TouchEvent(
-                me,
-                Calendar.getInstance().getTimeInMillis());
-        te.setDestate(fingersState);
-
-        // Publish!
-        eventPublisher.onNext(te);
-    }
-
-
     private int getStatusBarHeight() {
         int result = 0;
         int resourceId = getResources().getIdentifier(
@@ -239,24 +248,32 @@ public class MainActivity extends Activity {
         @SuppressLint("ClickableViewAccessibility")
         @Override
         public boolean onTouchEvent(MotionEvent event) {
-            // Publish the event (mostly for Actioner)
-//            publishEvent(event);
-            Actioner.get().processEvent(event);
-//            if (event.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN) {
-//                Log.d(TAG, "Action Index= " + event.getActionIndex());
-//                Log.d(TAG, "Action ID= " + event.getPointerId(event.getActionIndex()));
-//            }
 
-//            if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
-//                for (int pix = 0; pix < event.getPointerCount(); pix++) {
-//                    Log.d(TAG, "dY (" + pix + ")");
-//                    Log.d(TAG, "-------------------------");
-//                }
-//
-//            }
+            // Play sound
+            switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                audioManager.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN,0.5f);
+                break;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                audioManager.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN,0.5f);
+                break;
+            case MotionEvent.ACTION_MOVE:
+                break;
+            case MotionEvent.ACTION_POINTER_UP:
+                audioManager.playSoundEffect(SoundEffectConstants.NAVIGATION_UP,0.5f);
+                 break;
+            case MotionEvent.ACTION_UP:
+                audioManager.playSoundEffect(SoundEffectConstants.NAVIGATION_UP,0.5f);
+                break;
+            }
+
+            meId++; // Assign next id
 
             // Log the action
-            Mologger.get().logAll(event);
+            Mologger.get().logAll(event, meId);
+
+            // Send the event + id for processing
+            Actioner.get().processEvent(event, meId);
 
             return super.onTouchEvent(event);
         }

@@ -10,9 +10,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
 
-import io.reactivex.rxjava3.schedulers.Schedulers;
-import io.reactivex.rxjava3.subjects.PublishSubject;
-
 import static android.view.MotionEvent.PointerCoords;
 
 /***
@@ -25,25 +22,16 @@ public class Mologger {
 
     private static Mologger self; // for singleton
 
-    public boolean isLogging = true;
+    // Logging is active or not
+    public boolean toLog = true;
 
     // Naming
-    private static String logDir;
+    private static String logDir; // Top directory for all the logs
 
     private static final String PI = "P"; // Participant indicator
     private static final String SEP = ";"; // Separator
 
-    private static String LOG_FILE_PFX  = "Log-";
-    private static String PTC_PFX       = "PTC";
-    private static String EXP_FILE_PFX  = "EXP";
-    private static String BLK_FILE_PFX  = "BLK";
-
     // Values
-    private String ptcDirPath = "";
-    private String phaseDirPath = "";
-    private String expDirPath = "";
-    private PrintWriter blockLogFile;
-
     private String metaLogFilePath;
     private String coordsLogFilePath;
     private String allLogFilePath;
@@ -51,13 +39,11 @@ public class Mologger {
     private PrintWriter metaLogFile;
     private PrintWriter coordsLogFile;
     private PrintWriter allLogFile;
-//    private int expNum;
 
     private int _pid = -1; // Participant ID (for keeping logged)
     public int _phase;
     public int _subblockNum;
     public int _trialNum;
-
 
     // ===============================================================================
 
@@ -78,9 +64,8 @@ public class Mologger {
      */
     public Mologger() {
         // Create the log dir (if not existed)
-        logDir = Environment.getExternalStorageDirectory() +
-                "/" + "Moose" + "/";
-        createDir(logDir);
+        logDir = Environment.getExternalStorageDirectory() + "/Moose/";
+        createDir(logDir).output(this.getClass().getName());
     }
 
     /**
@@ -126,23 +111,32 @@ public class Mologger {
         } catch (IOException e) {
             Log.d(TAG, "Error in creating participant files!");
             e.printStackTrace();
-            return STATUS.LOG_ERR_FILES_CREATION;
+            return STATUS.ERR_FILES_CREATION;
         }
     }
 
     /**
      * Log a MotionEvent (in ALL)
      * @param me MotionEvent
+     * @param meID int - unique id of the MotionEvent
      * @return STATUS
      */
-    public STATUS logAll(MotionEvent me) {
-        if (!isLogging) return STATUS.LOG_DISABLED;
+    public STATUS logAll(MotionEvent me, int meID) {
+        if (!toLog) return STATUS.LOG_DISABLED;
 
         try {
             if (allLogFile == null) { // Open only if not opened before
                 allLogFile = new PrintWriter(new FileWriter(allLogFilePath, true));
             }
-            allLogFile.println(Actioner.get()._technique.ordinal() + ";" + me);
+
+            String logStr = Actioner.get()._technique.ordinal() + SEP +
+                    _phase + SEP +
+                    _subblockNum + SEP +
+                    _trialNum + SEP +
+                    meID + SEP +
+                    motionEventToStr(me);
+
+            allLogFile.println(logStr);
             allLogFile.flush();
 
 //            Log.d(TAG, "Logged in ALL!");
@@ -156,21 +150,24 @@ public class Mologger {
 
     /**
      * Log a META
+     * @param startMeId int - meId of the start event
      * @param actionStartPC PointerCoords of the start point
+     * @param endMeId int - meId of the end event
      * @param actionEndPC PointerCoords of the end point
      * @param duration Action duration (in ms)
      * @param dX Difference in X
      * @param dY Difference in Y
      * @return STATUS
      */
-    public STATUS logMeta(int  actionID,
+    public STATUS logMeta(int  startMeId,
                           PointerCoords actionStartPC,
+                          int endMeId,
                           PointerCoords actionEndPC,
                           float dX,
                           float dY,
                           int duration) {
 
-        if (!isLogging) return STATUS.LOG_DISABLED;
+        if (!toLog) return STATUS.LOG_DISABLED;
 
         try {
             if (metaLogFile == null) { // Open only if not opened before
@@ -182,16 +179,17 @@ public class Mologger {
                     _phase + SEP +
                     _subblockNum + SEP +
                     _trialNum + SEP +
-                    actionID + SEP +
-                    getPCoordStr(actionStartPC) + SEP +
-                    getPCoordStr(actionEndPC) + SEP +
+                    startMeId + SEP +
+                    pointerCoordsToStr(actionStartPC) + SEP +
+                    endMeId + SEP +
+                    pointerCoordsToStr(actionEndPC) + SEP +
                     Utils.double3Dec(dX) + SEP +
                     Utils.double3Dec(dY) + SEP +
-                    duration + SEP;
+                    duration;
 
             metaLogFile.println(logStr);
             metaLogFile.flush();
-            metaLogFile.close();
+//            metaLogFile.close();
 
             Log.d(TAG, "Logged in META");
             return STATUS.SUCCESS;
@@ -210,7 +208,7 @@ public class Mologger {
      * @return STATUS
      */
     public STATUS logCoords(STATE state, List<PointerCoords> coordsList, long time) {
-        if (!isLogging) return STATUS.LOG_DISABLED;
+        if (!toLog) return STATUS.LOG_DISABLED;
 
         try {
             if (coordsLogFile == null) { // Open only if not opened before
@@ -226,7 +224,7 @@ public class Mologger {
                             .append(state.ordinal()).append(SEP)
                             .append(coordsList.size()).append(SEP);
             for(int i = 0; i < coordsList.size(); i++) {
-                logSB.append(getPCoordStr(coordsList.get(i))).append(SEP);
+                logSB.append(pointerCoordsToStr(coordsList.get(i))).append(SEP);
             }
             logSB.deleteCharAt(logSB.length() - 1);
 
@@ -243,133 +241,90 @@ public class Mologger {
         }
     }
 
+    public STATUS finishLogs() {
+        try {
+            if (metaLogFile != null) {
+                metaLogFile.close();
+                metaLogFile = null;
+            }
+            if (allLogFile != null) {
+                allLogFile.close();
+                allLogFile = null;
+            }
+
+            return STATUS.SUCCESS;
+
+        } catch (NullPointerException e) {
+            Log.d(TAG, "Error in accessing META log file");
+            return STATUS.ERR_LOG_FILE_ACCESS;
+        }
+    }
+
     /**
      * Get the string for a MotionEvent.PointerCoord
      * @return String (semi-colon separated)
      */
-    private String getPCoordStr(MotionEvent.PointerCoords inPC) {
+    private String pointerCoordsToStr(PointerCoords inPC) {
         return
-                inPC.orientation + SEP +
-                inPC.pressure + SEP +
-                inPC.size + SEP +
-                inPC.toolMajor + SEP +
-                inPC.toolMinor + SEP +
-                inPC.touchMajor + SEP +
-                inPC.touchMinor + SEP +
-                inPC.x + SEP +
-                inPC.y;
+                Utils.double3Dec(inPC.orientation) + SEP +
+                Utils.double3Dec(inPC.pressure) + SEP +
+                Utils.double3Dec(inPC.size) + SEP +
+                Utils.double3Dec(inPC.toolMajor) + SEP +
+                Utils.double3Dec(inPC.toolMinor) + SEP +
+                Utils.double3Dec(inPC.touchMajor) + SEP +
+                Utils.double3Dec(inPC.touchMinor) + SEP +
+                Utils.double3Dec(inPC.x) + SEP +
+                Utils.double3Dec(inPC.y);
 
     }
 
     /**
-     * Subscribe to a TouchEvent publisher
-     * @param tePublisher TouchEventPublisher
+     * Truly GET the PointerCoords!
+     * @param me MotionEvent
+     * @param pointerIndex int pointer index
+     * @return String
      */
-    public void subscribeToEvents(PublishSubject<TouchEvent> tePublisher) {
-        tePublisher
-                .observeOn(Schedulers.io())
-                .subscribe(
-//                        this::log
-                );
+    public String pointerCoordsToStr(MotionEvent me, int pointerIndex) {
+        PointerCoords result = new PointerCoords();
+        me.getPointerCoords(pointerIndex, result);
+        return pointerCoordsToStr(result);
     }
 
     /**
-     * Log the start of a phase
-     * @param phase String
+     * Get the String of a MotionEvent
+     * @param me MotionEvent
+     * @return String
      */
-    public void logPhaseStart(String phase) {
-        // Create a dir for the phase
-        String phaseDir = ptcDirPath + "/" +
-                phase + "-" +
-                Actioner.get()._technique;
-        if (createDir(phaseDir) == STATUS.SUCCESS) {
-            phaseDirPath = phaseDir + "/";
-            if (phase != "SHOWCASE") isLogging = true;
+    public String motionEventToStr(MotionEvent me) {
+        StringBuilder result = new StringBuilder();
+
+        result.append(me.getActionMasked()).append(SEP);
+
+        result.append("0x").append(Integer.toHexString(me.getFlags())).append(SEP);
+        result.append("0x").append(Integer.toHexString(me.getEdgeFlags())).append(SEP);
+        result.append("0x").append(Integer.toHexString(me.getSource())).append(SEP);
+
+        result.append(me.getEventTime()).append(SEP);
+        result.append(me.getDownTime()).append(SEP);
+
+        // Pointers' info (for 0 - (nPointer -1) => real values | for the rest to 5 => dummy)
+        int nPointers = me.getPointerCount();
+        result.append(nPointers).append(SEP);
+        int pi;
+        for(pi = 0; pi < me.getPointerCount(); pi++) {
+            result.append(pi).append(SEP); // Index
+            result.append(me.getPointerId(pi)).append(SEP); // Id
+            result.append(pointerCoordsToStr(me, pi)).append(SEP); // PointerCoords
         }
-    }
 
-    public void logBlockStart(int blkNum) {
-        if (!phaseDirPath.isEmpty()) {
-            try {
-                String blkFilePath = phaseDirPath +
-                        BLK_FILE_PFX + "-" + blkNum + ".txt";
-
-                blockLogFile = new PrintWriter(new FileWriter(blkFilePath));
-
-                String allLogFilePath = phaseDirPath +
-                        BLK_FILE_PFX + "-" + blkNum + "-all.txt";
-
-                allLogFile = new PrintWriter(new FileWriter(allLogFilePath));
-
-                Log.d(TAG, "Log files created");
-            } catch (IOException e) {
-                Log.d(TAG, "Problem in creating block file!");
-                e.printStackTrace();
-            }
+        for (pi = nPointers; pi < 5; pi++) {
+            result.append(-1).append(SEP); // Index = -1
+            result.append(-1).append(SEP); // Id = -1
+            result.append(pointerCoordsToStr(new PointerCoords())).append(SEP); // PointerCoords = empty
         }
-    }
 
-    /**
-     * Set up a log for the Block
-     * @param blkNum Block number
-     */
-    public void setupBlockLog(int blkNum) {
-        // Create the block file
-        if (!expDirPath.isEmpty()) {
-            try {
-                String blkFilePath = expDirPath +
-                        BLK_FILE_PFX + "-" + blkNum + ".txt";
+        return result.toString();
 
-                blockLogFile = new PrintWriter(new FileWriter(blkFilePath));
-
-                String allLogFilePath = expDirPath +
-                        BLK_FILE_PFX + "-" + blkNum + "-all.txt";
-
-                allLogFile = new PrintWriter(new FileWriter(allLogFilePath));
-
-                Log.d(TAG, "Log files created");
-            } catch (IOException e) {
-                Log.d(TAG, "Problem in creating block file!");
-                e.printStackTrace();
-            }
-        }
-    }
-
-    /**
-     * Finish the current block => close the block file
-     */
-    public void finishBlockLog() {
-        blockLogFile.close();
-        allLogFile.close();
-    }
-
-    /**
-     * Log a TouchEvent
-     * @param lg String to log
-     */
-    public int logAll(String lg) {
-        if (!isLogging) return 1;
-
-        if (blockLogFile !=null) {
-            blockLogFile.println(lg);
-//            Log.d(TAG, "Action Logged");
-        } else {
-            Log.d(TAG, "Can't access block log file!");
-        }
-        return 0;
-    }
-    
-
-    public int logAll(TouchEvent tevent) {
-        if (!isLogging) return 1;
-
-        if (allLogFile !=null) {
-            allLogFile.println(tevent);
-//            Log.d(TAG, "Action Logged");
-        } else {
-            Log.d(TAG, "Can't access block log file!");
-        }
-        return 0;
     }
 
     /**
@@ -383,10 +338,12 @@ public class Mologger {
         boolean result = true;
         if (!folder.exists()) {
             result = folder.mkdirs();
+        } else {
+            return STATUS.DIR_EXISTS;
         }
 
         if (result) return STATUS.SUCCESS;
-        else return STATUS.LOG_ERR_DIR_CREATION;
+        else return STATUS.ERR_DIR_CREATION;
 
     }
 
@@ -481,12 +438,82 @@ public class Mologger {
      * @return String
      */
     private String allLogHeader() {
-        StringBuilder headerSB = new StringBuilder()
-                .append("technique;")
-                .append("phase;")
-                .append("subblock_num;")
-                .append("trial_num;")
-                .append("motion_event");
-        return headerSB.toString();
+        return "technique" + SEP +
+                "phase" + SEP +
+                "subblock_num" + SEP +
+                "trial_num" + SEP +
+
+                "event_id" + SEP +
+
+                "action" + SEP +
+
+                "flags" + SEP +
+                "edge_flags" + SEP +
+                "source" + SEP +
+
+                "event_time" + SEP +
+                "down_time" + SEP +
+
+                "number_pointers" + SEP +
+
+                "finger_1_index" + SEP +
+                "finger_1_id" + SEP +
+                "finger_1_orientation" + SEP +
+                "finger_1_pressure" + SEP +
+                "finger_1_size" + SEP +
+                "finger_1_toolMajor" + SEP +
+                "finger_1_toolMinor" + SEP +
+                "finger_1_touchMajor" + SEP +
+                "finger_1_touchMinor" + SEP +
+                "finger_1_x" + SEP +
+                "finger_1_y" + SEP +
+
+                "finger_2_index" + SEP +
+                "finger_2_id" + SEP +
+                "finger_2_orientation" + SEP +
+                "finger_2_pressure" + SEP +
+                "finger_2_size" + SEP +
+                "finger_2_toolMajor" + SEP +
+                "finger_2_toolMinor" + SEP +
+                "finger_2_touchMajor" + SEP +
+                "finger_2_touchMinor" + SEP +
+                "finger_2_x" + SEP +
+                "finger_2_y" + SEP +
+
+                "finger_3_index" + SEP +
+                "finger_3_id" + SEP +
+                "finger_3_orientation" + SEP +
+                "finger_3_pressure" + SEP +
+                "finger_3_size" + SEP +
+                "finger_3_toolMajor" + SEP +
+                "finger_3_toolMinor" + SEP +
+                "finger_3_touchMajor" + SEP +
+                "finger_3_touchMinor" + SEP +
+                "finger_3_x" + SEP +
+                "finger_3_y" +
+
+                "finger_4_index" + SEP +
+                "finger_4_id" + SEP +
+                "finger_4_orientation" + SEP +
+                "finger_4_pressure" + SEP +
+                "finger_4_size" + SEP +
+                "finger_4_toolMajor" + SEP +
+                "finger_4_toolMinor" + SEP +
+                "finger_4_touchMajor" + SEP +
+                "finger_4_touchMinor" + SEP +
+                "finger_4_x" + SEP +
+                "finger_4_y" +
+
+                "finger_5_index" + SEP +
+                "finger_5_id" + SEP +
+                "finger_5_orientation" + SEP +
+                "finger_5_pressure" + SEP +
+                "finger_5_size" + SEP +
+                "finger_5_toolMajor" + SEP +
+                "finger_5_toolMinor" + SEP +
+                "finger_5_touchMajor" + SEP +
+                "finger_5_touchMinor" + SEP +
+                "finger_5_x" + SEP +
+                "finger_5_y";
     }
 }

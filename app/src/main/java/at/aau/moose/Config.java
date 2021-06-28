@@ -11,8 +11,8 @@ public class Config {
     //=======================================================
 
     // Server
-    public static final String SERVER_IP = "192.168.2.1";
-//    public static final String SERVER_IP = "192.168.178.34";
+//    public static final String SERVER_IP = "192.168.2.1";
+    public static final String SERVER_IP = "192.168.178.34";
     public static final int SERVER_Port = 8000;
 //    public static final int TIMEOUT = 2 * 60 * 1000; // 2 min
 

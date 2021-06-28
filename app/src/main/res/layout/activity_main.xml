@@ -15,7 +15,8 @@
         app:layout_constraintBottom_toTopOf="@id/blankView"
         app:layout_constraintVertical_weight="2"
         android:background="@color/white"
-        tools:ignore="MissingConstraints" />
+        tools:ignore="MissingConstraints"
+        android:soundEffectsEnabled="true"/>
 
     <View
         android:id="@+id/blankView"

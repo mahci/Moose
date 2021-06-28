@@ -51,7 +51,7 @@ public class Networker {
                     line = inChannel.readLine();
                     if (line != null) {
                         Log.d(TAG, "Received: " + line);
-                        processInput(line);
+                        processReceivedCommands(line);
                     } else break;
                 }
                 connect();
@@ -66,6 +66,7 @@ public class Networker {
 
     /**
      * Subscribe to get the messages (to send to the desktop)
+     * because the networking can't be on the main thread
      * @param mssgPublisher Publisher of String messages
      */
     public void subscribeToMessages(PublishSubject<String> mssgPublisher) {
@@ -85,11 +86,11 @@ public class Networker {
     }
 
     /**
-     * Process the input command
+     * Process the input command from the desktop
      * @param inStr Input String
      */
-    private void processInput(String inStr) {
-        Log.d(TAG, "Process: " + inStr);
+    private void processReceivedCommands(String inStr) {
+        Log.d(TAG, "processReceivedCommands <- " + inStr);
         // Command must be in the format <mssg-param>
         // Message and param
         String mssg = Utils.splitStr(inStr)[0];
@@ -106,9 +107,9 @@ public class Networker {
         case Strs.MSSG_BEG_PHS: // Start of the phase
             int phase = Integer.parseInt(param);
             Mologger.get()._phase = phase;
-            // Don't log during the Showcase
-            if (phase == 0) Mologger.get().isLogging = false;
-            else Mologger.get().isLogging  = true;
+
+            if (phase == 0) Mologger.get().toLog = false; // Don't log during the Showcase
+            else Mologger.get().toLog = true;
             break;
         case Strs.MSSG_SUBBLOCK: // Subblock number
             Mologger.get()._subblockNum = Integer.parseInt(param);
@@ -117,7 +118,8 @@ public class Networker {
             Mologger.get()._trialNum = Integer.parseInt(param);
             break;
         case Strs.MSSG_END_EXP:
-            Mologger.get().isLogging = false;
+            Mologger.get().toLog = false;
+            Mologger.get().finishLogs();
             break;
         case Strs.NET_DISCONNECT:
             connect();
