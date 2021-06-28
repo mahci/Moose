@@ -124,7 +124,7 @@ public class MainActivity extends Activity {
         Networker.get().connect();
 
         // [TEST]
-        Actioner.get()._technique = Actioner.TECHNIQUE.SWIPE;
+        Actioner.get()._technique = Actioner.TECHNIQUE.TAP;
         Actioner.get().vibrator = (Vibrator)getSystemService(VIBRATOR_SERVICE);
 
         int maxSimultaneousStreams = 3;

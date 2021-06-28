@@ -305,7 +305,7 @@ public class Actioner {
                     // Did it move too much?
                     if (leftDY >= Config.TAP_LCLICK_DIST_MAX) { // SWIPED!
                         vPressed = false; // Flag
-                        Log.d(TAG, "--------------- Cancelled ---------------");
+                        Log.d(TAG, "--------------- Cancelled by Distance ---------------");
                         mssgPublisher.onNext(ACTION.CANCEL.name()); // Send the action
 
                         startMeId = -1; // Reset the start id
@@ -315,6 +315,7 @@ public class Actioner {
             }
 
             break;
+
         // Second, third, ... fingers are up
         case MotionEvent.ACTION_POINTER_UP:
             // Check if the active finger has gone up
@@ -357,6 +358,7 @@ public class Actioner {
                 endtMeId = -1;
             }
             break;
+
         // Last finger is up
         case MotionEvent.ACTION_UP:
             // Was it a single-finger TAP?
@@ -408,15 +410,15 @@ public class Actioner {
     private void startTapTimer() {
         tapTimer = new CountDownTimer(Config.TAP_LCLICK_TIMEOUT, 100) {
             @Override
-            public void onTick(long millisUntilFinished) {
-
-            }
+            public void onTick(long millisUntilFinished) {}
 
             @Override
             public void onFinish() {
-                Log.d(TAG, "--------------- Cancelled ---------------");
-                mssgPublisher.onNext(Strs.ACT_CANCEL); // Send a CANCEL message
-                vPressed = false;
+                if (vPressed) {
+                    Log.d(TAG, "--------------- Cancelled by Time ---------------");
+                    mssgPublisher.onNext(Strs.ACT_CANCEL); // Send a CANCEL message
+                    vPressed = false;
+                }
             }
         }.start();
     }
