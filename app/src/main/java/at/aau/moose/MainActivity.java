@@ -153,6 +153,7 @@ public class MainActivity extends Activity {
      * Draw the custom view (to apear under the status bar)
      */
     public void drawViewGroup() {
+        getWindow().getDecorView().setBackgroundColor(Color.WHITE);
         WindowManager winManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -164,8 +165,8 @@ public class MainActivity extends Activity {
                 PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP;
         params.width = WindowManager.LayoutParams.MATCH_PARENT;
-//        params.height = (int) (Config._tapRegionH);
-        params.height = WindowManager.LayoutParams.MATCH_PARENT;
+        params.height = (int) (Config._tapRegionH);
+//        params.height = WindowManager.LayoutParams.MATCH_PARENT;
 
         TouchViewGroup view = new TouchViewGroup(this);
 

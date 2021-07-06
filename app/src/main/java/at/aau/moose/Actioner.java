@@ -84,15 +84,18 @@ public class Actioner {
      * @param meId int - unique id for this event
      */
     public void processEvent(MotionEvent me, int meId) {
-        //--- Process the TOUCH EVENT based on the gesture
-        switch (mGenLogInfo.technique) {
-        case SWIPE: // SWIPE
-            swipeLClick(me, meId);
-            break;
-        case TAP:
-            tapLClick(me, meId);
-            break;
+        if (mGenLogInfo.technique != null) {
+            //--- Process the TOUCH EVENT based on the gesture
+            switch (mGenLogInfo.technique) {
+            case SWIPE: // SWIPE
+                swipeLClick(me, meId);
+                break;
+            case TAP:
+                tapLClick(me, meId);
+                break;
+            }
         }
+
     }
 
     /**

@@ -31,8 +31,8 @@ public class Config {
     public static float multip;
 
     // Sizes  ----------------------------------------
-//    public static final int TAP_REGION_H_MM = 100; // mm
-//    public static float _tapRegionH; // px
+    public static final int TAP_REGION_H_MM = 80; // mm
+    public static float _tapRegionH; // px
     // -----------------------------------------------
 
     /**
@@ -47,7 +47,7 @@ public class Config {
         SWIPE_LCLICK_DY_MIN = SWIPE_LCLICK_DY_MIN_MM * multip;
         TAP_LCLICK_DIST_MAX = TAP_LCLICK_DIST_MAX_MM * multip;
 
-//        _tapRegionH = TAP_REGION_H_MM * multip;
+        _tapRegionH = TAP_REGION_H_MM * multip;
 
         Log.d(TAG, "Constants ============");
         Log.d(TAG, "Min dY = " + SWIPE_LCLICK_DY_MIN + " px");
