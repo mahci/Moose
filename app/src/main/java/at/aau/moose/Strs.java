@@ -31,4 +31,7 @@ public class Strs {
     public static final String NET_CONNECT      = "CONNECT";
     public static final String NET_DISCONNECT   = "DISCONNECT";
 
+    // Logging
+    public static final String SEP = ";";
+
 }

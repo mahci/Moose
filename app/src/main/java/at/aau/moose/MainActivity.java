@@ -12,7 +12,6 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Vibrator;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
@@ -22,8 +21,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
-import java.util.Calendar;
-
+import at.aau.log.MotionEventLogInfo;
 import at.aau.sound.SoundManager;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 
@@ -87,7 +85,7 @@ public class MainActivity extends Activity {
         initialized = true;
 
         // Pass the DisplayMetrics to Const to convert values
-        Config.SetPxValues(getResources().getDisplayMetrics());
+        Config.setPxValues(getResources().getDisplayMetrics());
 
         // Get the admin permission [for ReStBa]
         mDPM = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
@@ -124,8 +122,8 @@ public class MainActivity extends Activity {
         Networker.get().connect();
 
         // [TEST]
-        Actioner.get()._technique = Actioner.TECHNIQUE.TAP;
-        Actioner.get().vibrator = (Vibrator)getSystemService(VIBRATOR_SERVICE);
+//        Actioner.get()._technique = Actioner.TECHNIQUE.TAP;
+//        Actioner.get().vibrator = (Vibrator)getSystemService(VIBRATOR_SERVICE);
 
         int maxSimultaneousStreams = 3;
         mSoundManager = new SoundManager(this, maxSimultaneousStreams);
@@ -270,7 +268,7 @@ public class MainActivity extends Activity {
             meId++; // Assign next id
 
             // Log the action
-            Mologger.get().logAll(event, meId);
+            Mologger.get().logAll(new MotionEventLogInfo(event, meId));
 
             // Send the event + id for processing
             Actioner.get().processEvent(event, meId);

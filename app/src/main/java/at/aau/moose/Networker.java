@@ -106,20 +106,23 @@ public class Networker {
             break;
         case Strs.MSSG_BEG_PHS: // Start of the phase
             int phase = Integer.parseInt(param);
-            Mologger.get()._phase = phase;
+//            Mologger.get()._phase = phase;
+            Actioner.get().mGenLogInfo.phase = phase;
 
             if (phase == 0) Mologger.get().toLog = false; // Don't log during the Showcase
             else Mologger.get().toLog = true;
             break;
         case Strs.MSSG_SUBBLOCK: // Subblock number
-            Mologger.get()._subblockNum = Integer.parseInt(param);
+//            Mologger.get()._subblockNum = Integer.parseInt(param);
+            Actioner.get().mGenLogInfo.subBlockNum = Integer.parseInt(param);
             break;
         case Strs.MSSG_TRIAL: // Trial number
-            Mologger.get()._trialNum = Integer.parseInt(param);
+//            Mologger.get()._trialNum = Integer.parseInt(param);
+            Actioner.get().mGenLogInfo.trialNum = Integer.parseInt(param);
             break;
         case Strs.MSSG_END_EXP:
             Mologger.get().toLog = false;
-            Mologger.get().finishLogs();
+            Mologger.get().closeLogs();
             break;
         case Strs.NET_DISCONNECT:
             connect();

@@ -11,8 +11,8 @@ public class Config {
     //=======================================================
 
     // Server
-    public static final String SERVER_IP = "192.168.2.1";
-//    public static final String SERVER_IP = "192.168.178.34";
+//    public static final String SERVER_IP = "192.168.2.1";
+    public static final String SERVER_IP = "192.168.178.34";
     public static final int SERVER_Port = 8000;
 //    public static final int TIMEOUT = 2 * 60 * 1000; // 2 min
 
@@ -28,6 +28,8 @@ public class Config {
 
     // -----------------------------------------------
 
+    public static float multip;
+
     // Sizes  ----------------------------------------
 //    public static final int TAP_REGION_H_MM = 100; // mm
 //    public static float _tapRegionH; // px
@@ -35,10 +37,11 @@ public class Config {
 
     /**
      * Set the pixel equivalent of mm values
+     * and set the multip for later use
      * @param dm DisplayMetrics of the current device
      */
-    public static void SetPxValues(DisplayMetrics dm) {
-        float multip = TypedValue.applyDimension(
+    public static void setPxValues(DisplayMetrics dm) {
+        multip = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_MM, 1, dm);
 
         SWIPE_LCLICK_DY_MIN = SWIPE_LCLICK_DY_MIN_MM * multip;
@@ -49,6 +52,16 @@ public class Config {
         Log.d(TAG, "Constants ============");
         Log.d(TAG, "Min dY = " + SWIPE_LCLICK_DY_MIN + " px");
         Log.d(TAG, "======================");
+    }
+
+    /**
+     * Convert pixel value to mm
+     * @param pxValue float value in px
+     * @return float - value in mm (if multiplicant not set => same as input)
+     */
+    public static float pxToMM(float pxValue) {
+        if (multip > 0) return pxValue / multip;
+        else return pxValue;
     }
 
     /**
