@@ -305,18 +305,26 @@ public class Actioner {
                         Log.d(TAG, "--------------- Cancelled by Distance ---------------");
                         mssgPublisher.onNext(ACTION.CANCEL.name()); // Send the action
 
-                        // End attribs
-                        mMetaLogInfo.duration = (int) (System.currentTimeMillis() - actionStartTime);
-                        mMetaLogInfo.endMeId = meId;
-                        mMetaLogInfo.endPointerCoords = getPointerCoords(me, 0);
-                        mMetaLogInfo.setDs(); // Set dX and dY based on
-                        mMetaLogInfo.relCan = 1; // Cancelled
+                        // Log if not already logged
+                        if (mMetaLogInfo.startMeId != -1) {
+                            // End attribs
+                            mMetaLogInfo.duration = (int)
+                                    (System.currentTimeMillis() - actionStartTime);
+                            mMetaLogInfo.endMeId = meId;
+                            mMetaLogInfo.endPointerCoords = getPointerCoords(me, 0);
+                            mMetaLogInfo.setDs(); // Set dX and dY based on
+                            mMetaLogInfo.relCan = 1; // Cancelled
+                            Log.d(TAG, "start id= " + mMetaLogInfo.startMeId);
+                            Log.d(TAG, "end id= " + mMetaLogInfo.endMeId);
 
-                        // Log the action
-                        Mologger.get().logMeta(mMetaLogInfo);
+                            // Log the action
+                            Mologger.get().logMeta(mMetaLogInfo);
 
-                        mMetaLogInfo.startMeId = -1; // Reset the start id
-                        mMetaLogInfo.endMeId = -1; // Reset the end id
+                            mMetaLogInfo.startMeId = -1; // Reset the start id
+                            mMetaLogInfo.endMeId = -1; // Reset the end id
+
+                        }
+
                     }
 
                 }
@@ -431,6 +439,8 @@ public class Actioner {
                     mMetaLogInfo.endMeId = -1;
                     mMetaLogInfo.setDs();
                     mMetaLogInfo.relCan = 1; // Cancelled
+                    Log.d(TAG, "start id= " + mMetaLogInfo.startMeId);
+                    Log.d(TAG, "end id= " + mMetaLogInfo.endMeId);
 
                     // Log
                     Mologger.get().logMeta(mMetaLogInfo);

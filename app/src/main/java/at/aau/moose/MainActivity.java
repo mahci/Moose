@@ -40,21 +40,16 @@ public class MainActivity extends Activity {
     // Unique id for every MotionEvent
     private int meId = -1;
 
-    private static TouchState fingersState = new TouchState();
-
     private static DevicePolicyManager mDPM;
     private static ComponentName adminManager;
     public static boolean adminActive;
-    private static boolean statusDisabled;
 
     private boolean askedForOverlayPermission;
 
     private boolean initialized;
 
     private MediaPlayer mediaPlayer;
-
     private AudioManager audioManager;
-
     private SoundManager mSoundManager;
 
     @SuppressLint("ClickableViewAccessibility")
@@ -165,8 +160,8 @@ public class MainActivity extends Activity {
                 PixelFormat.TRANSLUCENT);
         params.gravity = Gravity.TOP;
         params.width = WindowManager.LayoutParams.MATCH_PARENT;
-        params.height = (int) (Config._tapRegionH);
-//        params.height = WindowManager.LayoutParams.MATCH_PARENT;
+//        params.height = (int) (Config._tapRegionH);
+        params.height = WindowManager.LayoutParams.MATCH_PARENT;
 
         TouchViewGroup view = new TouchViewGroup(this);
 
@@ -248,31 +243,34 @@ public class MainActivity extends Activity {
         @Override
         public boolean onTouchEvent(MotionEvent event) {
 
-            // Play sound
-            switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN:
-                audioManager.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN,0.5f);
-                break;
-            case MotionEvent.ACTION_POINTER_DOWN:
-                audioManager.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN,0.5f);
-                break;
-            case MotionEvent.ACTION_MOVE:
-                break;
-            case MotionEvent.ACTION_POINTER_UP:
-                audioManager.playSoundEffect(SoundEffectConstants.NAVIGATION_UP,0.5f);
-                 break;
-            case MotionEvent.ACTION_UP:
-                audioManager.playSoundEffect(SoundEffectConstants.NAVIGATION_UP,0.5f);
-                break;
+            if (event.getY() < Config._tapRegionH) { // Don't process touches on the bottom part
+
+                // Play sound
+                switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    audioManager.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN, 0.5f);
+                    break;
+                case MotionEvent.ACTION_POINTER_DOWN:
+                    audioManager.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN, 0.5f);
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    break;
+                case MotionEvent.ACTION_POINTER_UP:
+                    audioManager.playSoundEffect(SoundEffectConstants.NAVIGATION_UP, 0.5f);
+                    break;
+                case MotionEvent.ACTION_UP:
+                    audioManager.playSoundEffect(SoundEffectConstants.NAVIGATION_UP, 0.5f);
+                    break;
+                }
+
+                meId++; // Assign next id
+
+                // Log the action
+                Mologger.get().logAll(new MotionEventLogInfo(event, meId));
+
+                // Send the event + id for processing
+                Actioner.get().processEvent(event, meId);
             }
-
-            meId++; // Assign next id
-
-            // Log the action
-            Mologger.get().logAll(new MotionEventLogInfo(event, meId));
-
-            // Send the event + id for processing
-            Actioner.get().processEvent(event, meId);
 
             return super.onTouchEvent(event);
         }

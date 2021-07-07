@@ -13,9 +13,9 @@ import static at.aau.moose.Strs.SEP;
 
 public class MetaLogInfo {
     public int startMeId; // Start MotionEvent ID
-    public PointerCoords startPointerCoords;
+    public PointerCoords startPointerCoords = new PointerCoords();
     public int endMeId; // End MotionEvent ID
-    public PointerCoords endPointerCoords;
+    public PointerCoords endPointerCoords = new PointerCoords();
     public float dX;
     public float dY;
     public int duration;
@@ -34,6 +34,7 @@ public class MetaLogInfo {
      * @return String - header with the names of the vars
      */
     public static String getLogHeader() {
+
         return "action_start_event_id" + SEP +
 
                 "action_start_orientation" + SEP +
