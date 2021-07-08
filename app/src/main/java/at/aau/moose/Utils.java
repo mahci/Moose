@@ -1,5 +1,6 @@
 package at.aau.moose;
 
+import android.os.Vibrator;
 import android.util.Log;
 import android.view.MotionEvent;
 
@@ -13,6 +14,8 @@ public class Utils {
 
     private static String TAG = "Moose_Utils";
 
+    public static Vibrator vibrator;
+
     /**
      * Split the input String with "-" and return the two parts
      * If only one part, return empty for the other part
@@ -23,7 +26,7 @@ public class Utils {
         String[] result = new String[2];
         result[0] = "";
         result[1] = "";
-        String[] splString = inStr.split("-");
+        String[] splString = inStr.split("--");
         Log.d(TAG, Arrays.toString(splString));
         if (splString.length > 1) {
             result[0] = splString[0];
@@ -53,10 +56,4 @@ public class Utils {
     public static String double3Dec(double input) {
         return String.format("%.3f", input);
     }
-
-
-
-
-
-
 }

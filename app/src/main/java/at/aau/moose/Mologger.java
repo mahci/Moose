@@ -37,13 +37,13 @@ public class Mologger {
     private static final String SEP = ";"; // Separator
 
     // Values
-    private String metaLogFilePath;
-    private String allLogFilePath;
+    private String metaLogFilePath = "";
+    private String allLogFilePath = "";
 
     private PrintWriter metaLogFile;
     private PrintWriter allLogFile;
 
-    private int _pid = -1; // Participant ID (for keeping logged)
+//    private String expLogId;
 
     // ===============================================================================
 
@@ -70,34 +70,35 @@ public class Mologger {
 
     /**
      * Log the start of a participant
-     * @param pid participant's id
+     * @param expLogId String - experiment Id for the files
      * @return STATUS
      */
-    public STATUS loginParticipant(String pid) {
+    public STATUS syncExperiment(String expLogId) {
         try {
-            metaLogFilePath = logDir +
-                    PI + pid + "_" +
-                    Utils.nowDateTime() + "_" +
-                    "META.txt";
+            metaLogFilePath = logDir + expLogId + "_" + "META.txt";
+            allLogFilePath = logDir + expLogId + "_" + "ALL.txt";
 
-            allLogFilePath = logDir +
-                    PI + pid + "_" +
-                    Utils.nowDateTime() + "_" +
-                    "ALL.txt";
+            if (new File(metaLogFilePath).exists()) { // File already exists => open to write
+                Log.d(TAG, "META file existed");
+                metaLogFile = new PrintWriter(new FileWriter(metaLogFilePath, true));
+            } else { // First time creating the file
+                metaLogFile = new PrintWriter(new FileWriter(metaLogFilePath, true));
+                metaLogFile.println(
+                        GeneralLogInfo.getLogHeader() + SEP +
+                                MetaLogInfo.getLogHeader());
+                metaLogFile.flush();
+            }
 
-            // Open meta file and write the column headers
-            metaLogFile = new PrintWriter(new FileWriter(metaLogFilePath, true));
-            metaLogFile.println(
-                    GeneralLogInfo.getLogHeader() + SEP +
-                    MetaLogInfo.getLogHeader());
-            metaLogFile.flush();
-
-            // Open all file and write the column headers
-            allLogFile = new PrintWriter(new FileWriter(allLogFilePath, true));
-            allLogFile.println(
-                    GeneralLogInfo.getLogHeader() + SEP +
-                    MotionEventLogInfo.getLogHeader());
-            allLogFile.flush();
+            if (new File(allLogFilePath).exists()) { // File already exists => open to write
+                Log.d(TAG, "ALL file existed");
+                allLogFile = new PrintWriter(new FileWriter(allLogFilePath, true));
+            } else { // First time creating the file
+                allLogFile = new PrintWriter(new FileWriter(allLogFilePath, true));
+                allLogFile.println(
+                        GeneralLogInfo.getLogHeader() + SEP +
+                                MotionEventLogInfo.getLogHeader());
+                allLogFile.flush();
+            }
 
             Log.d(TAG, "Log files created");
 
@@ -132,6 +133,7 @@ public class Mologger {
 
         } catch (IOException | NullPointerException e) {
             Log.d(TAG, "Error in accessing ALL log file");
+            Log.d(TAG, e.toString());
             return STATUS.ERR_LOG_FILE_ACCESS;
         }
     }

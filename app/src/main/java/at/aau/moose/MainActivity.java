@@ -12,6 +12,7 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
@@ -77,10 +78,13 @@ public class MainActivity extends Activity {
      */
     private void init() {
 
-        initialized = true;
+        // Set the vibrator in Networker
+        Networker.get().vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 
         // Pass the DisplayMetrics to Const to convert values
         Config.setPxValues(getResources().getDisplayMetrics());
+
+        initialized = true;
 
         // Get the admin permission [for ReStBa]
         mDPM = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);

@@ -2,6 +2,8 @@ package at.aau.moose;
 
 import android.annotation.SuppressLint;
 import android.os.AsyncTask;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -27,6 +29,8 @@ public class Networker {
     private BufferedReader inChannel;
 
     private Observable<Object> receiverOberservable;
+
+    public Vibrator vibrator;
 
     /**
      * Get the singletong instance
@@ -98,13 +102,19 @@ public class Networker {
 
         // Command
         switch (mssg) {
-        case Strs.MSSG_PID: // Start of a participant
-            Mologger.get().loginParticipant(param);
+        case Strs.MSSG_EXP_ID: // Experiment log id
+            Mologger.get().syncExperiment(param);
             break;
-        case Strs.MSSG_TECHNIQUE: // Set the technique
+
+        case Strs.MSSG_PID: // Start of a participant
+//            Mologger.get().loginParticipant(param);
+            break;
+
+        case Strs.MSSG_TECHNIQUE: // Technique (TECH)
             Actioner.get().setTechnique(param);
             break;
-        case Strs.MSSG_BEG_PHS: // Start of the phase
+
+        case Strs.MSSG_PHASE: // Phase (int)
             int phase = Integer.parseInt(param);
 //            Mologger.get()._phase = phase;
             Actioner.get().mGenLogInfo.phase = phase;
@@ -112,18 +122,20 @@ public class Networker {
             if (phase == 0) Mologger.get().toLog = false; // Don't log during the Showcase
             else Mologger.get().toLog = true;
             break;
+
         case Strs.MSSG_SUBBLOCK: // Subblock number
-//            Mologger.get()._subblockNum = Integer.parseInt(param);
             Actioner.get().mGenLogInfo.subBlockNum = Integer.parseInt(param);
             break;
+
         case Strs.MSSG_TRIAL: // Trial number
-//            Mologger.get()._trialNum = Integer.parseInt(param);
             Actioner.get().mGenLogInfo.trialNum = Integer.parseInt(param);
             break;
+
         case Strs.MSSG_END_EXP:
             Mologger.get().toLog = false;
             Mologger.get().closeLogs();
             break;
+
         case Strs.NET_DISCONNECT:
             connect();
             break;
@@ -172,6 +184,7 @@ public class Networker {
                     Log.d(TAG, "Line: " + line);
                     if (Objects.equals(line, Strs.MSSG_CONFIRM)) { // Confirmation
                         Log.d(TAG, "Connection Successful!");
+                        vibrateForSuccess(); // Vibrate
                         return "SUCCESS";
                     }
 
@@ -207,11 +220,12 @@ public class Networker {
     }
 
     /**
-     * Return the time in ms
-     * @return Time (ms)
+     * Vibrate to show success
      */
-    private long now() {
-        return Calendar.getInstance().getTimeInMillis();
+    private void vibrateForSuccess() {
+        if (vibrator != null) {
+            vibrator.vibrate(500);
+        }
     }
 
 }
